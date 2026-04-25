@@ -2,6 +2,8 @@ import os
 import logging
 from fastapi import APIRouter, Request
 from slack_bolt.async_app import AsyncApp
+from websocket_manager import manager
+import datetime
 
 router = APIRouter()
 
@@ -34,6 +36,18 @@ async def handle_om_webhook(request: Request):
                 except Exception as e:
                     logging.error(f"Failed to send Slack alert: {e}")
                     
-    # TODO: Push event to WebSocket for frontend ticker
+    # Push event to WebSocket for frontend ticker
+    ws_payload = {
+        "id": str(os.urandom(8).hex()),
+        "type": event_type,
+        "message": f"{entity_type.capitalize()} '{entity.get('name', 'Unknown')}' was {event_type.replace('entity', '').lower()}.",
+        "timestamp": datetime.datetime.utcnow().isoformat()
+    }
+    
+    if has_pii:
+        ws_payload["type"] = "pii_detected"
+        ws_payload["message"] = f"Potential PII detected in '{fqn}'."
+        
+    await manager.broadcast(ws_payload)
     
     return {"status": "ok"}

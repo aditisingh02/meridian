@@ -24,25 +24,18 @@ app.add_middleware(
 app.include_router(om_handler.router, prefix="/webhooks", tags=["OpenMetadata Webhooks"])
 app.include_router(github_handler.router, prefix="/webhooks", tags=["GitHub Webhooks"])
 
-# WebSockets for Frontend Event Ticker
-connected_clients = []
+from websocket_manager import manager
 
 @app.websocket("/ws/events")
 async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
-    connected_clients.append(websocket)
+    await manager.connect(websocket)
     try:
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
-        connected_clients.remove(websocket)
+        manager.disconnect(websocket)
 
-async def broadcast_event(event_data: dict):
-    for client in connected_clients:
-        try:
-            await client.send_json(event_data)
-        except Exception as e:
-            logging.error(f"WebSocket send error: {e}")
+
 
 @app.get("/health")
 def health_check():

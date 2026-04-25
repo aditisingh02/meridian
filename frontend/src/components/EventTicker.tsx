@@ -13,34 +13,24 @@ export default function EventTicker() {
   const [events, setEvents] = useState<OMEvent[]>([]);
 
   useEffect(() => {
-    // In a real implementation this would be a WebSocket:
-    // const ws = new WebSocket("ws://localhost:8000/ws/events");
-    // ws.onmessage = (event) => { ... }
+    const ws = new WebSocket("ws://localhost:8000/ws/events");
     
-    // For demo purposes, we'll simulate events streaming in:
-    const mockEvents = [
-      { id: "1", type: "schema_change", message: "New column 'user_email' added to 'users' table.", timestamp: new Date().toISOString() },
-      { id: "2", type: "test_failure", message: "Data quality test failed on 'payments' table: null values found.", timestamp: new Date().toISOString() },
-      { id: "3", type: "pii_detected", message: "Potential PII detected in 'users' table.", timestamp: new Date().toISOString() },
-    ];
-
-    let i = 0;
-    const interval = setInterval(() => {
-      if (i < mockEvents.length) {
-        setEvents((prev) => [mockEvents[i], ...prev].slice(0, 10)); // Keep last 10
-        i++;
-      } else {
-        // Generate random ping
-        setEvents((prev) => [{
-          id: Math.random().toString(),
-          type: "ping",
-          message: "Health check passed for pipeline...",
-          timestamp: new Date().toISOString()
-        }, ...prev].slice(0, 10));
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        setEvents((prev) => [data, ...prev].slice(0, 15));
+      } catch (e) {
+        console.error("Failed to parse websocket message", e);
       }
-    }, 3000);
+    };
 
-    return () => clearInterval(interval);
+    ws.onerror = (error) => {
+      console.error("WebSocket Error: ", error);
+    };
+
+    return () => {
+      ws.close();
+    };
   }, []);
 
   return (

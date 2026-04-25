@@ -3,6 +3,8 @@ import logging
 from fastapi import APIRouter, Request
 from slack_bolt.async_app import AsyncApp
 from openmetadata_client import OpenMetadataClient
+from websocket_manager import manager
+import datetime
 
 router = APIRouter()
 om_client = OpenMetadataClient()
@@ -21,7 +23,7 @@ async def handle_github_webhook(request: Request):
     if action in ["opened", "reopened", "synchronize"]:
         # Naive keyword matching for hackathon demo
         if "drop" in title.lower() or "delete" in title.lower() or "remove" in title.lower():
-            # Use Bolt App to send message
+            # Use Slack App to send message
             bot_token = os.environ.get("SLACK_BOT_TOKEN")
             channel = os.environ.get("SLACK_CHANNEL_ID", "#general")
             
@@ -35,6 +37,13 @@ async def handle_github_webhook(request: Request):
                     )
                 except Exception as e:
                     logging.error(f"Failed to send Slack alert: {e}")
+                    
+            ws_payload = {
+                "id": str(os.urandom(8).hex()),
+                "type": "schema_change",
+                "message": f"GitHub PR #{pr.get('number')} by {user}: {title}",
+                "timestamp": datetime.datetime.utcnow().isoformat()
+            }
+            await manager.broadcast(ws_payload)
             
     return {"status": "ok"}
-
