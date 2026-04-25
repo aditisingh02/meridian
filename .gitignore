@@ -1,0 +1,22 @@
+# Virtual Environment
+backend/venv/
+venv/
+__pycache__/
+*.pyc
+
+# Environment Variables
+.env
+.env.local
+
+# Next.js / Node
+frontend/node_modules/
+node_modules/
+frontend/.next/
+.next/
+npm-debug.log*
+
+# OpenMetadata Volumes
+openmetadata/docker-volume/
+
+# OS Files
+.DS_Store
