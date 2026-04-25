@@ -2,6 +2,10 @@
 
 @theme {
   --animate-fade-in: fade-in 0.3s ease-out forwards;
+  --animate-fade-rise: fade-rise 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-instrument-serif), ui-serif, Georgia, serif;
   
   @keyframes fade-in {
     from {
@@ -13,17 +17,53 @@
       transform: translateY(0);
     }
   }
+
+  @keyframes fade-rise {
+    from {
+      opacity: 0;
+      transform: translateY(30px) scale(0.98);
+      filter: blur(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: blur(0);
+    }
+  }
 }
 
 :root {
-  --background: #080808;
-  --foreground: #ededed;
+  /* Minimalist White Theme (Dashboard) */
+  --background: #ffffff;
+  --foreground: #111111;
+}
+
+.dark-theme {
+  /* Cinematic Dark Theme (Landing Page) */
+  --background: hsl(201, 100%, 13%);
+  --foreground: hsl(0, 0%, 100%);
+  --border: hsl(215, 27.9%, 16.9%);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+}
+
+.liquid-glass {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.glass-nav {
+  background: rgba(0, 10, 20, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* Custom Scrollbar */
@@ -34,9 +74,15 @@ body {
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.1);
   border-radius: 4px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+.dark-theme .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+.dark-theme .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
 }
