@@ -37,10 +37,10 @@ export default function HealthMap() {
   const error   = assets.filter((a) => a.status === "error").length;
 
   return (
-    <div className="bg-gray-50 rounded-xl p-5">
+    <div className="bg-[#111] border border-[#222] rounded-xl p-5">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <div className="text-sm font-semibold text-gray-700">Estate Heatmap</div>
+          <div className="text-sm font-semibold text-gray-300">Estate Heatmap</div>
           <div className="text-xs text-gray-400 mt-0.5">150 assets · updates every 2.5s</div>
         </div>
         <div className="flex items-center gap-4 text-xs text-gray-500">

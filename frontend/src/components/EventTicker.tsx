@@ -95,9 +95,9 @@ export default function EventTicker() {
   };
 
   return (
-    <div className="bg-white rounded-2xl p-5 flex flex-col h-[560px]">
+    <div className="bg-[#0a0a0a] border border-[#222] rounded-2xl p-5 flex flex-col h-[560px]">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
+        <h2 className="text-sm font-bold text-white uppercase tracking-wider">
           Live Event Stream
         </h2>
         <div className="flex items-center gap-1.5 text-xs text-gray-400">
@@ -117,7 +117,7 @@ export default function EventTicker() {
             return (
               <div
                 key={evt.id}
-                className="flex items-start gap-2.5 p-3 rounded-xl border border-gray-100 hover:border-gray-200 transition-colors"
+                className="flex items-start gap-2.5 p-3 rounded-xl border border-[#222] hover:border-[#333] transition-colors"
               >
                 <span className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${meta.dot}`} />
                 <div className="flex-1 min-w-0">
@@ -129,7 +129,7 @@ export default function EventTicker() {
                       {formatTime(evt.timestamp)}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-700 leading-snug">{evt.message}</p>
+                  <p className="text-xs text-gray-300 leading-snug">{evt.message}</p>
                   {evt.table_fqn && (
                     <p className="text-[10px] text-gray-400 font-mono mt-0.5 truncate">
                       {evt.table_fqn}

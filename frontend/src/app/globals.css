@@ -71,6 +71,10 @@
     color-scheme: dark;
   }
   
+  html {
+    scroll-behavior: smooth;
+  }
+  
   * {
     border-color: var(--color-border);
   }

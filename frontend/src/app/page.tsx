@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Globe } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRef, useState, useEffect } from "react";
 import { motion, useInView } from "framer-motion";
@@ -73,7 +74,7 @@ function PipelineDiagram() {
   }, [inView]);
 
   const nodeMap = Object.fromEntries(PIPELINE_NODES.map((n) => [n.id, n]));
-  const W = 960, H = 420;
+  const W = 1040, H = 420;
 
   return (
     <div ref={ref} className="relative w-full overflow-x-auto">
@@ -212,40 +213,32 @@ export default function LandingPage() {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black pointer-events-none" />
       </div>
 
-      {/* ── NAVBAR ── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 py-4 border-b border-[#111] bg-black/70 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center flex-shrink-0">
-            <span className="text-black font-bold text-sm">M</span>
+      {/* ── Floating pill navbar ── */}
+      <div className="fixed top-5 left-0 right-0 z-50 flex justify-center px-4">
+        <nav className="flex items-center gap-1 glass-nav rounded-full px-2 py-2 shadow-xl shadow-black/50">
+          <Link href="/" className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-white/10 transition-colors flex-shrink-0">
+            <Globe className="w-5 h-5 text-white" strokeWidth={2.5} />
+            <span className="font-semibold text-white text-sm">Meridian</span>
+          </Link>
+          <div className="hidden md:block w-px h-4 bg-[#333] mx-1" />
+          <div className="hidden md:flex items-center gap-1">
+            <a href="#features" className="px-3 py-1.5 rounded-full text-sm font-medium text-gray-400 hover:text-white hover:bg-white/10 transition-colors">Features</a>
+            <a href="#openmetadata" className="px-3 py-1.5 rounded-full text-sm font-medium text-gray-400 hover:text-white hover:bg-white/10 transition-colors">OpenMetadata</a>
+            <a href="#integrations" className="px-3 py-1.5 rounded-full text-sm font-medium text-gray-400 hover:text-white hover:bg-white/10 transition-colors">Integrations</a>
+            <a href="#pipeline" className="px-3 py-1.5 rounded-full text-sm font-medium text-gray-400 hover:text-white hover:bg-white/10 transition-colors">How it Works</a>
           </div>
-          <span className="font-semibold tracking-tight text-lg">Meridian</span>
-        </div>
-        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
-          <a href="#features" className="hover:text-white transition-colors">Features</a>
-          <a href="#openmetadata" className="hover:text-white transition-colors">OpenMetadata</a>
-          <a href="#integrations" className="hover:text-white transition-colors">Integrations</a>
-          <a href="#pipeline" className="hover:text-white transition-colors">How it Works</a>
-        </div>
-        <Link
-          href="/dashboard"
-          className="px-5 py-2 bg-white text-black rounded-lg font-semibold text-sm hover:bg-gray-100 transition-colors"
-        >
-          Open Dashboard →
-        </Link>
-      </nav>
+          <div className="w-px h-4 bg-[#333] mx-1" />
+          <Link
+            href="/dashboard"
+            className="px-4 py-1.5 rounded-full text-sm font-medium bg-white text-black hover:bg-gray-200 transition-colors"
+          >
+            Open Dashboard →
+          </Link>
+        </nav>
+      </div>
 
       {/* ── HERO ── */}
       <section className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6 text-center pt-24">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#333] bg-[#111]/80 text-xs font-medium text-gray-300 mb-8 tracking-wide"
-        >
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          Meridian 2.0 — Fully live with OpenMetadata, dbt, Sentry & PagerDuty
-        </motion.div>
-
         <motion.h1
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
@@ -462,7 +455,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-600">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
-              <span className="text-black text-[9px] font-bold">M</span>
+              <Globe className="w-3 h-3 text-black" strokeWidth={2.5} />
             </div>
             <span className="font-semibold text-gray-400">Meridian</span>
             <span>— Built for data teams</span>
