@@ -22,16 +22,24 @@ The architecture relies on a loosely coupled client-server design. A high-perfor
 
 ```mermaid
 flowchart TD
+    %% Styling Classes
+    classDef client fill:#E0F7FA,stroke:#006064,stroke-width:2px,color:#006064,font-weight:bold
+    classDef frontend fill:#E8EAF6,stroke:#283593,stroke-width:2px,color:#283593,font-weight:bold
+    classDef backend fill:#FFF3E0,stroke:#E65100,stroke-width:2px,color:#E65100,font-weight:bold
+    classDef database fill:#FCE4EC,stroke:#880E4F,stroke-width:2px,color:#880E4F,font-weight:bold
+    classDef agent fill:#F3E5F5,stroke:#4A148C,stroke-width:2px,color:#4A148C,font-weight:bold
+    classDef external fill:#E8F5E9,stroke:#1B5E20,stroke-width:2px,color:#1B5E20,font-weight:bold
+
     %% Top Level Clients & External Systems
-    ClientBrowser[Client Browser]
-    GitHubExternal[GitHub]
-    OpenMetadata[OpenMetadata]
-    SlackWorkspace[Slack Workspace]
+    ClientBrowser[Client Browser]:::client
+    GitHubExternal[GitHub]:::external
+    OpenMetadata[OpenMetadata]:::external
+    SlackWorkspace[Slack Workspace]:::external
 
     %% Second Level Services
-    NextFrontend[Next.js 16 Frontend]
-    WebhookReceivers[Webhook Receivers]
-    SlackBot[Slack Bot]
+    NextFrontend[Next.js 16 Frontend]:::frontend
+    WebhookReceivers[Webhook Receivers]:::backend
+    SlackBot[Slack Bot]:::backend
 
     %% Connections Top to Second
     ClientBrowser <-->|HTTP / WebSocket| NextFrontend
@@ -40,7 +48,7 @@ flowchart TD
     SlackWorkspace <-->|Socket Mode| SlackBot
 
     %% Core Backend
-    FastAPI[FastAPI Backend Server]
+    FastAPI[FastAPI Backend Server]:::backend
 
     %% Connections Second to Core
     NextFrontend <-->|REST API / Async WS| FastAPI
@@ -48,12 +56,12 @@ flowchart TD
     SlackBot <--> FastAPI
 
     %% Data & Managers
-    SQLite[(SQLite Database)]
-    WSManager[WebSocket Manager]
-    IntelHub[Intelligence Hub]
-    AsyncSchedulers[Async Schedulers]
-    JiraSystems[Jira Systems]
-    GitHubSystems[GitHub Systems]
+    SQLite[(SQLite Database)]:::database
+    WSManager[WebSocket Manager]:::backend
+    IntelHub[Intelligence Hub]:::backend
+    AsyncSchedulers[Async Schedulers]:::backend
+    JiraSystems[Jira Systems]:::external
+    GitHubSystems[GitHub Systems]:::external
 
     %% Connections Core to Data/Managers
     FastAPI --> SQLite
@@ -64,11 +72,11 @@ flowchart TD
     FastAPI -->|API Client| GitHubSystems
 
     %% Agents
-    ExecAgent[Executive Agent]
-    FinanceAgent[Finance Agent]
-    HRAgent[HR Agent]
-    PMAgent[PM Agent]
-    LLMEngine[LLM Engine]
+    ExecAgent[Executive Agent]:::agent
+    FinanceAgent[Finance Agent]:::agent
+    HRAgent[HR Agent]:::agent
+    PMAgent[PM Agent]:::agent
+    LLMEngine[LLM Engine]:::agent
 
     %% Connections Hub to Agents
     IntelHub -->|Domain Context| ExecAgent
