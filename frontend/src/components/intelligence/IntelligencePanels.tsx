@@ -12,10 +12,11 @@ const RISK_STYLE: Record<string, string> = {
   LOW:    "bg-green-100 text-green-700",
 };
 
-function StatusBadge({ value }: { value: string }) {
+function StatusBadge({ value }: { value?: string }) {
+  const safeValue = value || "UNKNOWN";
   return (
-    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${STATUS_STYLE[value] ?? "bg-gray-100 text-gray-500 border-gray-200"}`}>
-      {value.replace("_", " ")}
+    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${STATUS_STYLE[safeValue] ?? "bg-gray-100 text-gray-500 border-gray-200"}`}>
+      {safeValue.replace("_", " ")}
     </span>
   );
 }
@@ -276,6 +277,164 @@ export function PMPanel() {
                   {r.type}
                 </span>
                 <span className="text-gray-600">{r.desc}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+// ── dbt Cloud Panel ───────────────────────────────────────────────────────────
+export function DBTPanel() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+  useEffect(() => {
+    fetch(`${API}/api/intelligence/dbt`)
+      .then(r => r.json()).then(setData).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <Panel title="dbt Cloud"><div className="h-32 animate-pulse bg-gray-50 rounded-xl" /></Panel>;
+  if (!data?.configured) return (
+    <Panel title="dbt Cloud">
+      <p className="text-xs text-gray-400">Set DBT_CLOUD_TOKEN + DBT_ACCOUNT_ID to enable.</p>
+    </Panel>
+  );
+
+  const latest = data.latest_run ?? {};
+  const statusColor: Record<string, string> = {
+    Success:   "bg-green-100 text-green-700",
+    Error:     "bg-red-100 text-red-600",
+    Running:   "bg-blue-100 text-blue-700",
+    Cancelled: "bg-gray-100 text-gray-500",
+  };
+
+  return (
+    <Panel title="dbt Cloud">
+      <div className="flex items-center gap-2 mb-4">
+        <StatusBadge value={data.health} />
+        <span className="text-xs text-gray-400">{data.success_pct}% success rate</span>
+      </div>
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <Stat label="Total Runs" value={data.total_runs ?? "—"} sub={`${data.success} success · ${data.failed} failed`} />
+        <Stat label="Avg Duration" value={data.avg_duration_s ? `${Math.round(data.avg_duration_s)}s` : "—"} sub="per run" />
+      </div>
+      {latest.status && (
+        <div className="bg-gray-50 rounded-xl p-3 mb-3">
+          <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Latest Run</div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-gray-700">{latest.job_name || "Job"}</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusColor[latest.status] ?? "bg-gray-100 text-gray-500"}`}>
+              {latest.status}
+            </span>
+          </div>
+          {latest.duration_s && (
+            <div className="text-[10px] text-gray-400 mt-1">Duration: {Math.round(latest.duration_s)}s</div>
+          )}
+        </div>
+      )}
+      {data.test_failures?.length > 0 && (
+        <div>
+          <div className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-2">
+            Test Failures ({data.test_failures.length})
+          </div>
+          <div className="space-y-1.5">
+            {data.test_failures.slice(0, 4).map((f: any, i: number) => (
+              <div key={i} className="flex items-start gap-2 text-xs">
+                <span className="mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 bg-red-100 text-red-600">
+                  {f.status.toUpperCase()}
+                </span>
+                <span className="text-gray-600 font-mono truncate">{f.test}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {data.recent_runs?.length > 0 && (
+        <div className="mt-3">
+          <div className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-2">Recent Runs</div>
+          <div className="space-y-1">
+            {data.recent_runs.slice(0, 5).map((r: any) => (
+              <div key={r.id} className="flex items-center justify-between text-xs">
+                <span className="text-gray-600 truncate max-w-[140px]">{r.job}</span>
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${statusColor[r.status] ?? "bg-gray-100 text-gray-500"}`}>
+                  {r.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+// ── Sentry Panel ──────────────────────────────────────────────────────────────
+export function SentryPanel() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+  useEffect(() => {
+    fetch(`${API}/api/intelligence/sentry`)
+      .then(r => r.json()).then(setData).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <Panel title="Sentry"><div className="h-32 animate-pulse bg-gray-50 rounded-xl" /></Panel>;
+  if (!data?.configured) return (
+    <Panel title="Sentry">
+      <p className="text-xs text-gray-400">Set SENTRY_AUTH_TOKEN + SENTRY_ORG + SENTRY_PROJECT to enable.</p>
+    </Panel>
+  );
+
+  const trendColor = data.error_trend === "spiking" ? "text-red-500" : data.error_trend === "declining" ? "text-green-600" : "text-gray-500";
+  const trendIcon  = data.error_trend === "spiking" ? "↑" : data.error_trend === "declining" ? "↓" : "→";
+
+  return (
+    <Panel title="Sentry">
+      <div className="flex items-center gap-2 mb-4">
+        <StatusBadge value={data.health} />
+        <span className={`text-xs font-semibold ${trendColor}`}>
+          {trendIcon} {data.error_trend}
+          {data.volume_delta_pct !== 0 && ` (${data.volume_delta_pct > 0 ? "+" : ""}${data.volume_delta_pct}%)`}
+        </span>
+      </div>
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        <Stat label="Unresolved" value={data.total_unresolved ?? "—"} />
+        <Stat label="Critical" value={data.critical ?? "—"} />
+        <Stat label="Data-related" value={data.data_related ?? "—"} />
+      </div>
+      {data.data_related > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3">
+          <div className="text-[10px] font-bold text-amber-700 uppercase tracking-wider mb-1">⚠️ Data Pipeline Errors</div>
+          <p className="text-xs text-amber-600">{data.correlation_note}</p>
+        </div>
+      )}
+      {data.top_issues?.length > 0 && (
+        <div>
+          <div className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-2">Top Issues</div>
+          <div className="space-y-2">
+            {data.top_issues.slice(0, 5).map((issue: any) => (
+              <div key={issue.id} className="flex items-start gap-2">
+                <span className={`mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${
+                  issue.level === "fatal" ? "bg-red-100 text-red-600" :
+                  issue.level === "error" ? "bg-orange-100 text-orange-600" :
+                  "bg-yellow-100 text-yellow-700"
+                }`}>
+                  {issue.level.toUpperCase()}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-700 truncate">{issue.title}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[10px] text-gray-400">{issue.count} events</span>
+                    {issue.data_related && (
+                      <span className="text-[9px] font-bold bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded">DATA</span>
+                    )}
+                  </div>
+                </div>
               </div>
             ))}
           </div>

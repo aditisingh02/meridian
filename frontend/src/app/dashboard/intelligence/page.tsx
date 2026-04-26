@@ -8,10 +8,12 @@ import {
   HRPanel,
   FinancePanel,
   PMPanel,
+  DBTPanel,
+  SentryPanel,
 } from "@/components/intelligence/IntelligencePanels";
 
 const NAV_LINKS = ["Overview", "Tables", "Incidents", "Governance", "Lineage"];
-const TABS = ["Executive", "GitHub", "HR", "Finance", "PM"] as const;
+const TABS = ["Executive", "GitHub", "HR", "Finance", "PM", "dbt", "Sentry"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function IntelligencePage() {
@@ -92,6 +94,8 @@ export default function IntelligencePage() {
         {tab === "HR"      && <div className="grid grid-cols-1 md:grid-cols-2 gap-5"><HRPanel /></div>}
         {tab === "Finance" && <div className="grid grid-cols-1 md:grid-cols-2 gap-5"><FinancePanel /></div>}
         {tab === "PM"      && <div className="grid grid-cols-1 md:grid-cols-2 gap-5"><PMPanel /></div>}
+        {tab === "dbt"     && <div className="grid grid-cols-1 md:grid-cols-2 gap-5"><DBTPanel /></div>}
+        {tab === "Sentry"  && <div className="grid grid-cols-1 md:grid-cols-2 gap-5"><SentryPanel /></div>}
       </div>
     </div>
   );

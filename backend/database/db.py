@@ -82,9 +82,9 @@ async def save_incident(
     table_fqn: Optional[str] = None,
     owner: Optional[str] = None,
 ) -> dict:
-    """Create a new incident record. Returns the incident dict."""
+    """Create a new incident record. Auto-pages PagerDuty for critical severity."""
     incident_id = uuid.uuid4().hex
-    created_at = datetime.datetime.utcnow().isoformat()
+    created_at  = datetime.datetime.utcnow().isoformat()
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
             """INSERT INTO incidents (id, severity, title, table_fqn, owner, status, created_at)
@@ -92,26 +92,57 @@ async def save_incident(
             (incident_id, severity, title, table_fqn, owner, created_at),
         )
         await db.commit()
-    return {
-        "id": incident_id,
-        "severity": severity,
-        "title": title,
-        "table_fqn": table_fqn,
-        "owner": owner,
-        "status": "open",
+
+    incident = {
+        "id":         incident_id,
+        "severity":   severity,
+        "title":      title,
+        "table_fqn":  table_fqn,
+        "owner":      owner,
+        "status":     "open",
         "created_at": created_at,
     }
 
+    # Auto-page PagerDuty for critical incidents
+    if severity == "critical":
+        try:
+            from integrations.pagerduty_client import trigger_incident
+            await trigger_incident(
+                summary   = title,
+                severity  = "critical",
+                source    = "Meridian",
+                dedup_key = incident_id,
+                component = table_fqn or "data-estate",
+                details   = {"table_fqn": table_fqn, "owner": owner, "incident_id": incident_id},
+            )
+        except Exception as e:
+            import logging
+            logging.error(f"PagerDuty trigger failed: {e}")
+
+    return incident
+
 
 async def resolve_incident(incident_id: str) -> bool:
-    """Mark an incident resolved. Returns True if found."""
+    """Mark an incident resolved. Also resolves PagerDuty alert if active."""
     resolved_at = datetime.datetime.utcnow().isoformat()
     async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        # Check severity before resolving
+        row = await (await db.execute(
+            "SELECT severity FROM incidents WHERE id=? AND status='open'", (incident_id,)
+        )).fetchone()
         cur = await db.execute(
             "UPDATE incidents SET status='resolved', resolved_at=? WHERE id=? AND status='open'",
             (resolved_at, incident_id),
         )
         await db.commit()
+        if cur.rowcount > 0 and row and row["severity"] == "critical":
+            try:
+                from integrations.pagerduty_client import resolve_incident as pd_resolve
+                await pd_resolve(dedup_key=incident_id)
+            except Exception as e:
+                import logging
+                logging.error(f"PagerDuty resolve failed: {e}")
         return cur.rowcount > 0
 
 

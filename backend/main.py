@@ -6,14 +6,17 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-from webhooks import om_handler, github_handler
+from webhooks import om_handler, github_handler, sentry_handler
 from database.db import init_db, get_events, get_incidents, get_stats, resolve_incident
 from websocket_manager import manager
+from openmetadata_client import OpenMetadataClient
+
+om_client = OpenMetadataClient()
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
 
-app = FastAPI(title="Meridian API", version="2.0.0")
+app = FastAPI(title="Meridian API", version="2.1.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,8 +27,9 @@ app.add_middleware(
 )
 
 # ── Webhooks ──────────────────────────────────────────────────────────────────
-app.include_router(om_handler.router,     prefix="/webhooks", tags=["Webhooks"])
-app.include_router(github_handler.router, prefix="/webhooks", tags=["Webhooks"])
+app.include_router(om_handler.router,      prefix="/webhooks", tags=["Webhooks"])
+app.include_router(github_handler.router,  prefix="/webhooks", tags=["Webhooks"])
+app.include_router(sentry_handler.router,  prefix="/webhooks", tags=["Webhooks"])
 
 
 # ── WebSocket ─────────────────────────────────────────────────────────────────
@@ -39,12 +43,26 @@ async def websocket_endpoint(websocket: WebSocket):
         manager.disconnect(websocket)
 
 
-# ── Core REST API ─────────────────────────────────────────────────────────────
+# ── Health ────────────────────────────────────────────────────────────────────
 @app.get("/health")
 def health_check():
-    return {"status": "healthy", "version": "2.0.0"}
+    return {
+        "status":  "healthy",
+        "version": "2.1.0",
+        "integrations": {
+            "openmetadata": bool(os.getenv("OM_JWT_TOKEN")),
+            "slack":        bool(os.getenv("SLACK_BOT_TOKEN")),
+            "github":       bool(os.getenv("GITHUB_TOKEN")),
+            "jira":         bool(os.getenv("JIRA_API_TOKEN")),
+            "groq":         bool(os.getenv("GROQ_API_KEY")),
+            "pagerduty":    bool(os.getenv("PAGERDUTY_ROUTING_KEY")),
+            "dbt_cloud":    bool(os.getenv("DBT_CLOUD_TOKEN")),
+            "sentry":       bool(os.getenv("SENTRY_AUTH_TOKEN")),
+        },
+    }
 
 
+# ── Core REST API ─────────────────────────────────────────────────────────────
 @app.get("/api/events")
 async def api_get_events(limit: int = 50, offset: int = 0):
     events = await get_events(limit=limit, offset=offset)
@@ -53,16 +71,39 @@ async def api_get_events(limit: int = 50, offset: int = 0):
 
 @app.get("/api/incidents")
 async def api_get_incidents(status: Optional[str] = None):
-    incidents = await get_incidents(status=status)
-    return {"incidents": incidents}
+    return {"incidents": await get_incidents(status=status)}
 
 
 @app.patch("/api/incidents/{incident_id}/resolve")
 async def api_resolve_incident(incident_id: str):
-    success = await resolve_incident(incident_id)
-    if not success:
-        raise HTTPException(status_code=404, detail="Incident not found or already resolved")
-    return {"status": "resolved", "id": incident_id}
+    status = await resolve_incident(incident_id)
+    return {"status": "success", "pagerduty": status}
+
+# ── Data Proxy (OpenMetadata) ─────────────────────────────────────────────────
+@app.get("/api/data/search")
+async def search_data(q: str):
+    return await om_client.search_entities(q)
+
+@app.get("/api/data/table")
+async def get_table(fqn: str):
+    data = await om_client.get_table_by_fqn(fqn)
+    if not data:
+        raise HTTPException(status_code=404, detail="Table not found")
+    return data
+
+@app.get("/api/data/lineage")
+async def get_lineage(fqn: str):
+    data = await om_client.get_lineage_by_name("table", fqn)
+    if not data:
+        raise HTTPException(status_code=404, detail="Lineage not found")
+    return data
+
+@app.get("/api/data/quality")
+async def get_quality(fqn: str):
+    data = await om_client.get_test_cases_by_table(fqn)
+    if not data:
+        raise HTTPException(status_code=404, detail="Quality tests not found")
+    return data
 
 
 @app.get("/api/stats")
@@ -95,6 +136,19 @@ async def api_pm_intelligence(days: int = 14):
     return await pm_intelligence.analyse(days=days)
 
 
+@app.get("/api/intelligence/dbt")
+async def api_dbt_intelligence():
+    from integrations.dbt_client import analyse
+    return await analyse()
+
+
+@app.get("/api/intelligence/sentry")
+async def api_sentry_intelligence():
+    from integrations.sentry_client import analyse
+    return await analyse()
+
+
+# ── Executive API ─────────────────────────────────────────────────────────────
 @app.get("/api/executive/signals")
 async def api_executive_signals(days: int = 14):
     from intelligence import executive_intelligence
@@ -112,26 +166,45 @@ async def api_executive_dashboard(days: int = 14):
     from intelligence import executive_intelligence
     signals = await executive_intelligence.get_signals(days=days)
     panels  = executive_intelligence._nine_panel_dashboard(signals)
-    return {
-        "overall_status": signals.get("overall_status"),
-        "panels": panels,
-        "signals": signals,
-    }
+    return {"overall_status": signals.get("overall_status"), "panels": panels, "signals": signals}
+
+
+# ── PagerDuty API ─────────────────────────────────────────────────────────────
+@app.post("/api/pagerduty/trigger")
+async def api_pd_trigger(body: dict):
+    """Manually trigger a PagerDuty alert (for testing)."""
+    from integrations.pagerduty_client import trigger_incident
+    result = await trigger_incident(
+        summary   = body.get("summary", "Meridian manual alert"),
+        severity  = body.get("severity", "warning"),
+        source    = "Meridian-Manual",
+        dedup_key = body.get("dedup_key"),
+        details   = body.get("details"),
+    )
+    return result
+
+
+@app.post("/api/pagerduty/resolve/{dedup_key}")
+async def api_pd_resolve(dedup_key: str):
+    from integrations.pagerduty_client import resolve_incident as pd_resolve
+    return await pd_resolve(dedup_key=dedup_key)
+
+
+@app.get("/api/pagerduty/status")
+async def api_pd_status():
+    return {"configured": bool(os.getenv("PAGERDUTY_ROUTING_KEY"))}
 
 
 # ── Startup ───────────────────────────────────────────────────────────────────
 async def start_slack_socket_mode():
     bot_token = os.environ.get("SLACK_BOT_TOKEN")
     app_token = os.environ.get("SLACK_APP_TOKEN")
-
     if not (bot_token and app_token):
         logging.warning("Slack tokens missing — integration disabled.")
         return
-
     from slack_bolt.async_app import AsyncApp
     from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
     from slack_bot import commands
-
     slack_app = AsyncApp(token=bot_token)
     commands.register_commands(slack_app)
     handler = AsyncSocketModeHandler(slack_app, app_token)
