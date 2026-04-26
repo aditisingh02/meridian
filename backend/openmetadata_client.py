@@ -14,46 +14,58 @@ class OpenMetadataClient:
 
     async def search_entities(self, query: str, index: str = "table_search_index") -> Dict[str, Any]:
         """Search OM entities (tables, pipelines, etc.)"""
-        response = await self.client.get(
-            "/search/query",
-            params={"q": query, "index": index, "size": 10}
-        )
-        response.raise_for_status()
-        return response.json()
+        try:
+            response = await self.client.get(
+                "/search/query",
+                params={"q": query, "index": index, "size": 10}
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPError:
+            return {"hits": {"hits": []}, "error": "OpenMetadata unreachable"}
 
     async def get_table_by_fqn(self, fqn: str) -> Dict[str, Any]:
         """Get table details by Fully Qualified Name"""
-        response = await self.client.get(
-            f"/tables/name/{fqn}",
-            params={"fields": "columns,owner,tags,followers,tableQueries"}
-        )
-        if response.status_code == 404:
+        try:
+            response = await self.client.get(
+                f"/tables/name/{fqn}",
+                params={"fields": "columns,owner,tags,followers,tableQueries"}
+            )
+            if response.status_code == 404:
+                return None
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPError:
             return None
-        response.raise_for_status()
-        return response.json()
 
     async def get_lineage_by_name(self, entity_type: str, fqn: str, upstream_depth: int = 1, downstream_depth: int = 1) -> Dict[str, Any]:
         """Get data lineage (blast radius) for an entity"""
-        response = await self.client.get(
-            f"/lineage/{entity_type}/name/{fqn}",
-            params={
-                "upstreamDepth": upstream_depth,
-                "downstreamDepth": downstream_depth
-            }
-        )
-        if response.status_code == 404:
+        try:
+            response = await self.client.get(
+                f"/lineage/{entity_type}/name/{fqn}",
+                params={
+                    "upstreamDepth": upstream_depth,
+                    "downstreamDepth": downstream_depth
+                }
+            )
+            if response.status_code == 404:
+                return None
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPError:
             return None
-        response.raise_for_status()
-        return response.json()
         
     async def get_test_cases_by_table(self, fqn: str) -> Dict[str, Any]:
         """Get data quality test cases for a table FQN"""
-        response = await self.client.get(
-            "/dataQuality/testCases",
-            params={"entityLink": f"<#E::table::{fqn}>"}
-        )
-        if response.status_code == 404:
+        try:
+            response = await self.client.get(
+                "/dataQuality/testCases",
+                params={"entityLink": f"<#E::table::{fqn}>"}
+            )
+            if response.status_code == 404:
+                return None
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPError:
             return None
-        response.raise_for_status()
-        return response.json()
 

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, WS_URL, type MeridianEvent } from "@/lib/api";
 
-type ConnectionStatus = "connecting" | "connected" | "disconnected";
+type ConnectionStatus = "connecting" | "connected" | "polling" | "disconnected";
 
 const RECONNECT_DELAY_MS = 3000;
 
@@ -29,7 +29,9 @@ export default function EventTicker() {
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
   const wsRef = useRef<WebSocket | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const unmountedRef = useRef(false);
+  const retryCountRef = useRef(0);
 
   // Pre-populate from REST API on mount
   useEffect(() => {
@@ -52,6 +54,7 @@ export default function EventTicker() {
 
       ws.onopen = () => {
         if (unmountedRef.current) { ws.close(); return; }
+        retryCountRef.current = 0;
         setStatus("connected");
       };
 
@@ -70,6 +73,18 @@ export default function EventTicker() {
 
       ws.onclose = () => {
         if (unmountedRef.current) return;
+        retryCountRef.current += 1;
+        if (retryCountRef.current >= 3) {
+          setStatus("polling");
+          if (!pollRef.current) {
+            pollRef.current = setInterval(() => {
+              api.getEvents(20)
+                .then(({ events: recent }) => setEvents(recent))
+                .catch(() => {});
+            }, 10_000);
+          }
+          return;
+        }
         setStatus("disconnected");
         timerRef.current = setTimeout(connect, RECONNECT_DELAY_MS);
       };
@@ -79,6 +94,7 @@ export default function EventTicker() {
     return () => {
       unmountedRef.current = true;
       if (timerRef.current) clearTimeout(timerRef.current);
+      if (pollRef.current) clearInterval(pollRef.current);
       wsRef.current?.close();
     };
   }, []);
@@ -86,11 +102,13 @@ export default function EventTicker() {
   const statusDot: Record<ConnectionStatus, string> = {
     connecting:   "bg-yellow-400 animate-pulse",
     connected:    "bg-green-500",
+    polling:      "bg-blue-400",
     disconnected: "bg-red-400",
   };
   const statusLabel: Record<ConnectionStatus, string> = {
     connecting:   "Connecting...",
     connected:    "Live",
+    polling:      "Polling",
     disconnected: "Reconnecting...",
   };
 

@@ -4,10 +4,10 @@ import Link from "next/link";
 import { Globe } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import EventTicker from "@/components/EventTicker";
-import HealthMap from "@/components/HealthMap";
+import { ExecutivePanel, GitHubPanel, HRPanel, FinancePanel, PMPanel, DBTPanel, SentryPanel } from "@/components/intelligence/IntelligencePanels";
 import { api, type Stats, type Incident } from "@/lib/api";
 
-const NAV_LINKS = ["Overview", "Tables", "Incidents", "Governance", "Lineage"];
+const NAV_LINKS = ["Overview", "Tables", "Lineage"];
 
 const severityColor: Record<string, string> = {
   critical: "bg-red-500/10 text-red-400 border border-red-500/20",
@@ -29,20 +29,68 @@ function timeAgo(iso: string): string {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
+function OpenMetadataAssets() {
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.searchData("*")
+      .then(res => setData(res?.hits?.hits || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="vercel-card rounded-2xl p-6 shadow-sm border border-[#222] animate-pulse h-32" />;
+  if (data.length === 0) return <div className="vercel-card rounded-2xl p-6 text-gray-400 text-center">No catalog assets found.</div>;
+
+  return (
+    <div className="vercel-card rounded-2xl p-6 shadow-sm">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-sm font-bold text-white">Top Data Assets</h2>
+        <span className="text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-1 rounded-lg">
+          OpenMetadata Connected
+        </span>
+      </div>
+      <div className="space-y-3">
+        {data.slice(0, 5).map((item: any, i: number) => {
+          const table = item._source || item;
+          const fqn = table.fullyQualifiedName || "unknown.table";
+          const owner = table.owner?.name || "Unowned";
+          const tierTag = table.tags?.find((t:any) => t.tagFQN?.startsWith("Tier.Tier"));
+          const tier = tierTag ? tierTag.tagFQN.split(".").pop() : "No Tier";
+          return (
+            <div key={i} className="flex items-center justify-between border border-[#222] rounded-xl p-3 bg-[#111]">
+              <div className="flex flex-col min-w-0">
+                <div className="text-xs font-bold text-white truncate">{fqn}</div>
+                <div className="text-[10px] text-gray-400 mt-1">@{owner}</div>
+              </div>
+              <span className={`text-[10px] font-bold px-2 py-1 rounded ${tier === 'Tier1' ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-[#222] text-gray-400 border border-[#333]'}`}>
+                {tier}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
-  const [activeNav, setActiveNav] = useState("Overview");
   const [stats, setStats] = useState<Stats | null>(null);
   const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [health, setHealth] = useState<{ status: string; version: string; integrations: Record<string, boolean> } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     try {
-      const [statsRes, incRes] = await Promise.all([
+      const [statsRes, incRes, healthRes] = await Promise.all([
         api.getStats(),
         api.getIncidents("open"),
+        api.getHealth(),
       ]);
       setStats(statsRes);
       setIncidents(incRes.incidents);
+      setHealth(healthRes);
     } catch {
       // Backend may not be ready — silently retry
     } finally {
@@ -89,23 +137,16 @@ export default function Dashboard() {
           </Link>
           <div className="w-px h-4 bg-[#333] mx-1" />
           {NAV_LINKS.map((link) => (
-            <button
+            <Link
               key={link}
-              onClick={() => setActiveNav(link)}
+              href={link === "Overview" ? "/dashboard" : `/dashboard/${link.toLowerCase()}`}
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                activeNav === link ? "bg-white text-black" : "text-gray-400 hover:text-white hover:bg-white/10"
+                link === "Overview" ? "bg-white text-black" : "text-gray-400 hover:text-white hover:bg-white/10"
               }`}
             >
               {link}
-            </button>
+            </Link>
           ))}
-          <div className="w-px h-4 bg-[#333] mx-1" />
-          <Link
-            href="/dashboard/intelligence"
-            className="px-3 py-1.5 rounded-full text-sm font-medium text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-          >
-            Intelligence
-          </Link>
           <div className="w-px h-4 bg-[#333] mx-1" />
           <div className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full ${
             stats && stats.open_incidents > 0
@@ -161,8 +202,23 @@ export default function Dashboard() {
               )}
             </div>
 
-            <HealthMap />
           </div>
+
+          {/* AI Insights & Intelligence */}
+          <div className="space-y-5">
+            <ExecutivePanel />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <GitHubPanel />
+              <HRPanel />
+              <FinancePanel />
+              <PMPanel />
+              <DBTPanel />
+              <SentryPanel />
+            </div>
+          </div>
+
+          {/* OpenMetadata Source Data */}
+          <OpenMetadataAssets />
 
           {/* Bottom row */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -219,26 +275,32 @@ export default function Dashboard() {
                 <div className="text-2xl mb-3">🔗</div>
                 <h3 className="text-lg font-bold mb-2">Integrations</h3>
                 <p className="text-sm text-gray-400 leading-relaxed">
-                  All three data pipelines are active and routing events to the dashboard and Slack.
+                  Live connection status of backend services and data pipelines.
                 </p>
               </div>
               <div className="mt-6 space-y-2">
                 {[
-                  { name: "OpenMetadata", desc: "Webhook connected",      connected: true  },
-                  { name: "GitHub",       desc: "PR impact watcher",       connected: true  },
-                  { name: "Slack",        desc: "Bot + Socket Mode",        connected: !!process.env.NEXT_PUBLIC_SLACK_CONNECTED },
-                  { name: "Groq AI",      desc: "llama-3.1-8b-instant",    connected: true  },
-                ].map((int) => (
-                  <div key={int.name} className="flex items-center justify-between bg-[#111] border border-[#222] rounded-xl px-4 py-2.5">
-                    <div>
-                      <div className="text-sm font-medium text-white">{int.name}</div>
-                      <div className="text-[10px] text-gray-400">{int.desc}</div>
+                  { name: "OpenMetadata", desc: "Data Catalog",        key: "openmetadata" },
+                  { name: "GitHub",       desc: "PR impact watcher",   key: "github" },
+                  { name: "Slack",        desc: "Bot + Socket Mode",   key: "slack" },
+                  { name: "Sentry",       desc: "Error Tracking",      key: "sentry" },
+                  { name: "JIRA",         desc: "Project Management",  key: "jira" },
+                  { name: "dbt Cloud",    desc: "Pipeline Runner",     key: "dbt_cloud" },
+                  { name: "Groq AI",      desc: "LLM Insights",        key: "groq" },
+                ].map((int) => {
+                  const isConnected = health ? health.integrations[int.key] : false;
+                  return (
+                    <div key={int.name} className="flex items-center justify-between bg-[#111] border border-[#222] rounded-xl px-4 py-2.5">
+                      <div>
+                        <div className="text-sm font-medium text-white">{int.name}</div>
+                        <div className="text-[10px] text-gray-400">{int.desc}</div>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${isConnected ? "bg-green-500/10 border border-green-500/20 text-green-400" : "bg-[#222] text-gray-500"}`}>
+                        {isConnected ? "Active" : "Set up →"}
+                      </span>
                     </div>
-                    <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${int.connected ? "bg-green-500/10 border border-green-500/20 text-green-400" : "bg-black border border-[#333] text-gray-400"}`}>
-                      {int.connected ? "Active" : "Set up →"}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>

@@ -190,12 +190,7 @@ const OM_STEPS = [
 export default function LandingPage() {
   return (
     <main className="bg-black text-white selection:bg-white/20 relative">
-      <TargetCursor 
-        spinDuration={2}
-        hideDefaultCursor
-        parallaxOn
-        hoverDuration={0.2}
-      />
+<TargetCursor className="" />
 
       {/* ── Fixed Three.js Beams — full viewport ── */}
       <div className="absolute inset-x-0 top-0 h-screen pointer-events-none z-0 overflow-hidden">
@@ -464,7 +459,6 @@ export default function LandingPage() {
             <Link href="/dashboard" className="hover:text-white transition-colors">Dashboard</Link>
             <Link href="/dashboard/tables" className="hover:text-white transition-colors">Tables</Link>
             <Link href="/dashboard/lineage" className="hover:text-white transition-colors">Lineage</Link>
-            <Link href="/dashboard/intelligence" className="hover:text-white transition-colors">Intelligence</Link>
           </div>
         </div>
       </footer>

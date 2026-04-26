@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Globe } from "lucide-react";
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { api, EntityRef, LineageEdge, SearchHit } from "@/lib/api";
 import ReactFlow, {
   Background,
   Controls,
@@ -19,8 +20,6 @@ import "reactflow/dist/style.css";
 const NAV_LINKS = [
   { name: "Overview", href: "/dashboard" },
   { name: "Tables", href: "/dashboard/tables" },
-  { name: "Incidents", href: "/dashboard" },
-  { name: "Governance", href: "/dashboard" },
   { name: "Lineage", href: "/dashboard/lineage" },
 ];
 
@@ -39,26 +38,26 @@ function LineageInner() {
   const initialFqn = searchParams.get("fqn") || "";
 
   const [query, setQuery] = useState(initialFqn);
+  const [suggestions, setSuggestions] = useState<SearchHit[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchLineage = useCallback(async (fqn: string) => {
-    if (!fqn) return;
+    if (!fqn.trim()) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`http://localhost:8000/api/data/lineage?fqn=${fqn}`);
-      if (!res.ok) throw new Error("Lineage not found or OpenMetadata is unreachable.");
-      const data = await res.json();
+      const data = await api.getLineage(fqn);
 
       const newNodes: Node[] = [];
       const newEdges: Edge[] = [];
-      const entityMap = new Map();
+      const entityMap = new Map<string, EntityRef>();
 
       if (data.entity) entityMap.set(data.entity.id, data.entity);
-      if (data.nodes) data.nodes.forEach((n: any) => entityMap.set(n.id, n));
+      if (data.nodes) data.nodes.forEach((n) => entityMap.set(n.id, n));
 
       let upY = 0, downY = 0;
 
@@ -74,7 +73,7 @@ function LineageInner() {
       }
 
       if (data.upstreamEdges) {
-        data.upstreamEdges.forEach((edge: any, i: number) => {
+        data.upstreamEdges.forEach((edge: LineageEdge, i: number) => {
           const fromNode = entityMap.get(edge.fromEntity);
           if (fromNode && !newNodes.find(n => n.id === fromNode.id)) {
             newNodes.push({
@@ -92,7 +91,7 @@ function LineageInner() {
       }
 
       if (data.downstreamEdges) {
-        data.downstreamEdges.forEach((edge: any, i: number) => {
+        data.downstreamEdges.forEach((edge: LineageEdge, i: number) => {
           const toNode = entityMap.get(edge.toEntity);
           if (toNode && !newNodes.find(n => n.id === toNode.id)) {
             newNodes.push({
@@ -111,20 +110,76 @@ function LineageInner() {
 
       setNodes(newNodes);
       setEdges(newEdges);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setNodes([]);
+      setEdges([]);
+      setError(e instanceof Error ? e.message : "Lineage not found or OpenMetadata is unreachable.");
     } finally {
       setLoading(false);
     }
   }, [setNodes, setEdges]);
 
   useEffect(() => {
-    if (initialFqn) fetchLineage(initialFqn);
+    const term = query.trim();
+    const timer = setTimeout(async () => {
+      if (term.length > 0 && term.length < 2) {
+        setSuggestions([]);
+        return;
+      }
+      try {
+        setLoadingSuggestions(true);
+        const data = await api.searchData(term || "*");
+        setSuggestions((data.hits?.hits || []).slice(0, 8));
+      } catch {
+        setSuggestions([]);
+      } finally {
+        setLoadingSuggestions(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  useEffect(() => {
+    if (!initialFqn) return;
+    const timer = setTimeout(() => {
+      fetchLineage(initialFqn);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [initialFqn, fetchLineage]);
+
+  const resolveFqnAndFetch = useCallback(async (input: string) => {
+    const candidate = input.trim();
+    if (!candidate) return;
+
+    const directMatch = suggestions.find((hit) => hit._source?.fullyQualifiedName === candidate);
+    if (directMatch?._source?.fullyQualifiedName) {
+      fetchLineage(directMatch._source.fullyQualifiedName);
+      return;
+    }
+
+    if (candidate.includes(".")) {
+      fetchLineage(candidate);
+      return;
+    }
+
+    try {
+      const data = await api.searchData(candidate);
+      const firstFqn = data.hits?.hits?.[0]?._source?.fullyQualifiedName;
+      if (firstFqn) {
+        setQuery(firstFqn);
+        fetchLineage(firstFqn);
+        return;
+      }
+      setError(`No table found for "${candidate}".`);
+    } catch {
+      setError("Unable to search for that table right now.");
+    }
+  }, [fetchLineage, suggestions]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchLineage(query);
+    resolveFqnAndFetch(query);
   };
 
   return (
@@ -132,7 +187,7 @@ function LineageInner() {
       {/* Navbar */}
       <div className="fixed top-5 left-0 right-0 z-50 flex justify-center px-4">
         <nav className="flex items-center gap-1 bg-black/60 backdrop-blur-md border border-[#333] rounded-full px-2 py-2 shadow-xl shadow-black/50">
-          <Link href="/" className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-white/10 transition-colors flex-shrink-0">
+          <Link href="/" className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-white/10 transition-colors shrink-0">
             <Globe className="w-5 h-5 text-white" strokeWidth={2.5} />
             <span className="font-semibold text-white text-sm">Meridian</span>
           </Link>
@@ -146,10 +201,6 @@ function LineageInner() {
               }`}
             >{link.name}</Link>
           ))}
-          <div className="w-px h-4 bg-[#333] mx-1" />
-          <Link href="/dashboard/intelligence"
-            className="px-3 py-1.5 rounded-full text-sm font-medium text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-          >Intelligence</Link>
           <div className="w-8 h-8 rounded-full bg-[#222] flex items-center justify-center text-xs font-bold text-gray-400 ml-1">A</div>
         </nav>
       </div>
@@ -158,10 +209,11 @@ function LineageInner() {
       <div className="max-w-[1400px] w-full mx-auto px-5 pt-24 pb-4">
         <h1 className="text-2xl font-bold text-white">Lineage Explorer</h1>
         <p className="text-sm text-gray-500 mt-1">Visually trace upstream and downstream dependencies for any data asset.</p>
-        <form onSubmit={handleSearch} className="mt-6 flex gap-3 max-w-2xl">
+        <form onSubmit={handleSearch} className="mt-6 max-w-2xl">
+          <div className="flex gap-3">
           <input
             type="text"
-            placeholder="Enter full table FQN (e.g. sample_data.ecommerce_db.mysql.raw_customers)"
+            placeholder="Search by table name or FQN (e.g. raw_customers)"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="flex-1 px-4 py-3 rounded-xl border border-[#333] bg-[#111] text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-white/30 transition font-mono text-sm"
@@ -171,6 +223,34 @@ function LineageInner() {
           >
             {loading ? "Loading…" : "Trace"}
           </button>
+          </div>
+          <div className="mt-2 min-h-7 text-xs text-gray-500">
+            {loadingSuggestions ? (
+              <span>Searching tables...</span>
+            ) : suggestions.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {suggestions.map((hit) => {
+                  const fqn = hit._source?.fullyQualifiedName;
+                  if (!fqn) return null;
+                  return (
+                    <button
+                      key={fqn}
+                      type="button"
+                      onClick={() => {
+                        setQuery(fqn);
+                        fetchLineage(fqn);
+                      }}
+                      className="rounded-full border border-[#333] bg-[#0f0f0f] px-2.5 py-1 text-[11px] text-gray-300 hover:bg-[#1a1a1a] hover:text-white transition"
+                    >
+                      {hit._source?.name || fqn}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <span>Tip: click a suggested table to trace lineage instantly.</span>
+            )}
+          </div>
         </form>
       </div>
 

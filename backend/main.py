@@ -202,14 +202,17 @@ async def start_slack_socket_mode():
     if not (bot_token and app_token):
         logging.warning("Slack tokens missing — integration disabled.")
         return
-    from slack_bolt.async_app import AsyncApp
-    from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
-    from slack_bot import commands
-    slack_app = AsyncApp(token=bot_token)
-    commands.register_commands(slack_app)
-    handler = AsyncSocketModeHandler(slack_app, app_token)
-    logging.info("Starting Slack Socket Mode…")
-    await handler.start_async()
+    try:
+        from slack_bolt.async_app import AsyncApp
+        from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
+        from slack_bot import commands
+        slack_app = AsyncApp(token=bot_token)
+        commands.register_commands(slack_app)
+        handler = AsyncSocketModeHandler(slack_app, app_token)
+        logging.info("Starting Slack Socket Mode…")
+        await handler.start_async()
+    except Exception as exc:
+        logging.exception("Slack Socket Mode startup failed: %s", exc)
 
 
 @app.on_event("startup")
