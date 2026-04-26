@@ -20,7 +20,63 @@ The architecture relies on a loosely coupled client-server design. A high-perfor
 
 ### Architecture Flow Diagram
 
-![Meridian Architecture Diagram](https://mermaid.ink/img/eyJjb2RlIjogImdyYXBoIFREXG4gICAgQ2xpZW50W0NsaWVudCBCcm93c2VyXSA8LS0-fEhUVFAgLyBXZWJTb2NrZXR8IFVJW05leHQuanMgMTYgRnJvbnRlbmRdXG4gICAgVUkgPC0tPnxSRVNUIEFQSSAvIEFzeW5jIFdTfCBBUElbRmFzdEFQSSBCYWNrZW5kIFNlcnZlcl1cbiAgICBBUEkgLS0-IERCWyhTUUxpdGUgRGF0YWJhc2UpXVxuICAgIEFQSSAtLT4gV1NbV2ViU29ja2V0IE1hbmFnZXJdXG4gICAgQVBJIC0tPiBBZ2VudHNbSW50ZWxsaWdlbmNlIEh1Yl1cbiAgICBBZ2VudHMgLS0-fERvbWFpbiBDb250ZXh0fCBFeGVjW0V4ZWN1dGl2ZSBBZ2VudF1cbiAgICBBZ2VudHMgLS0-fERvbWFpbiBDb250ZXh0fCBGaW5bRmluYW5jZSBBZ2VudF1cbiAgICBBZ2VudHMgLS0-fERvbWFpbiBDb250ZXh0fCBIUltIUiBBZ2VudF1cbiAgICBBZ2VudHMgLS0-fERvbWFpbiBDb250ZXh0fCBQTVtQTSBBZ2VudF1cbiAgICBBZ2VudHMgLS0-IExMTVtMTE0gRW5naW5lXVxuICAgIEFQSSAtLT4gSm9ic1tBc3luYyBTY2hlZHVsZXJzXVxuICAgIEdpdEh1YltHaXRIdWJdIC0tPnxXZWJob29rc3wgV2ViaG9va0hhbmRsZXJbV2ViaG9vayBSZWNlaXZlcnNdXG4gICAgT3Blbk1ldGFkYXRhW09wZW5NZXRhZGF0YV0gLS0-fFdlYmhvb2tzfCBXZWJob29rSGFuZGxlclxuICAgIFdlYmhvb2tIYW5kbGVyIC0tPiBBUElcbiAgICBBUEkgLS0-fEFQSSBDbGllbnR8IEppcmFbSmlyYSBTeXN0ZW1zXVxuICAgIEFQSSAtLT58QVBJIENsaWVudHwgR0hDbGllbnRbR2l0SHViIFN5c3RlbXNdXG4gICAgU2xhY2tbU2xhY2sgV29ya3NwYWNlXSA8LS0-fFNvY2tldCBNb2RlfCBTbGFja0JvdFtTbGFjayBCb3RdXG4gICAgU2xhY2tCb3QgLS0-IEFQSVxuIiwgIm1lcm1haWQiOiB7InRoZW1lIjogImRlZmF1bHQifX0=)
+```mermaid
+flowchart TD
+    %% Top Level Clients & External Systems
+    ClientBrowser[Client Browser]
+    GitHubExternal[GitHub]
+    OpenMetadata[OpenMetadata]
+    SlackWorkspace[Slack Workspace]
+
+    %% Second Level Services
+    NextFrontend[Next.js 16 Frontend]
+    WebhookReceivers[Webhook Receivers]
+    SlackBot[Slack Bot]
+
+    %% Connections Top to Second
+    ClientBrowser <-->|HTTP / WebSocket| NextFrontend
+    GitHubExternal -->|Webhooks| WebhookReceivers
+    OpenMetadata -->|Webhooks| WebhookReceivers
+    SlackWorkspace <-->|Socket Mode| SlackBot
+
+    %% Core Backend
+    FastAPI[FastAPI Backend Server]
+
+    %% Connections Second to Core
+    NextFrontend <-->|REST API / Async WS| FastAPI
+    WebhookReceivers --> FastAPI
+    SlackBot <--> FastAPI
+
+    %% Data & Managers
+    SQLite[(SQLite Database)]
+    WSManager[WebSocket Manager]
+    IntelHub[Intelligence Hub]
+    AsyncSchedulers[Async Schedulers]
+    JiraSystems[Jira Systems]
+    GitHubSystems[GitHub Systems]
+
+    %% Connections Core to Data/Managers
+    FastAPI --> SQLite
+    FastAPI <--> WSManager
+    FastAPI --> IntelHub
+    FastAPI --> AsyncSchedulers
+    FastAPI -->|API Client| JiraSystems
+    FastAPI -->|API Client| GitHubSystems
+
+    %% Agents
+    ExecAgent[Executive Agent]
+    FinanceAgent[Finance Agent]
+    HRAgent[HR Agent]
+    PMAgent[PM Agent]
+    LLMEngine[LLM Engine]
+
+    %% Connections Hub to Agents
+    IntelHub -->|Domain Context| ExecAgent
+    IntelHub -->|Domain Context| FinanceAgent
+    IntelHub -->|Domain Context| HRAgent
+    IntelHub -->|Domain Context| PMAgent
+    IntelHub --> LLMEngine
+```
 
 ### Data Flow Table
 
