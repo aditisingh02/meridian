@@ -473,7 +473,7 @@ export function PMPanel() {
         <Stat label="PR Velocity" value={data.pr_velocity?.closed ?? 0} sub={`${data.pr_velocity?.open ?? 0} open`} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="flex flex-col gap-6">
         {data.risks?.length > 0 && (
           <div>
             <div className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-3">Risks & Warnings</div>

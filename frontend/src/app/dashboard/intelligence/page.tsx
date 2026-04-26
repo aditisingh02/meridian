@@ -5,7 +5,7 @@ import { Globe, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import { ExecutivePanel, GitHubPanel, HRPanel, FinancePanel, PMPanel, DBTPanel, SentryPanel } from "@/components/intelligence/IntelligencePanels";
 
-const NAV_LINKS = ["Overview", "Tables", "Lineage", "Intelligence"];
+import Navbar from "@/components/Navbar";
 
 const INTELLIGENCE_TABS = [
   { id: "executive", name: "Executive" },
@@ -79,29 +79,7 @@ export default function IntelligencePage() {
   return (
     <div className="min-h-screen bg-black text-white selection:bg-[#0a0a0a] border border-[#222]/30">
 
-      {/* ── Floating pill navbar ── */}
-      <div className="fixed top-5 left-0 right-0 z-50 flex justify-center px-4">
-        <nav className="flex items-center gap-1 glass-nav rounded-full px-2 py-2 shadow-xl shadow-black/50">
-          <Link href="/" className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-white/10 transition-colors flex-shrink-0">
-            <Globe className="w-5 h-5 text-white" strokeWidth={2.5} />
-            <span className="font-semibold text-white text-sm">Meridian</span>
-          </Link>
-          <div className="w-px h-4 bg-[#333] mx-1" />
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link}
-              href={link === "Overview" ? "/dashboard" : `/dashboard/${link.toLowerCase()}`}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                link === "Intelligence" ? "bg-white text-black" : "text-gray-400 hover:text-white hover:bg-white/10"
-              }`}
-            >
-              {link}
-            </Link>
-          ))}
-          <div className="w-px h-4 bg-[#333] mx-1" />
-          <div className="w-8 h-8 rounded-full bg-[#222] flex items-center justify-center text-xs font-bold text-gray-400 ml-1">A</div>
-        </nav>
-      </div>
+      <Navbar />
 
       {/* ── Body ── */}
       <div className="p-5 pt-28 max-w-[1400px] mx-auto">
