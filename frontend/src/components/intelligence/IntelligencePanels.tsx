@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { CheckCircle2, AlertTriangle, XCircle, User, Sparkles } from "lucide-react";
 
 const STATUS_STYLE: Record<string, string> = {
   ON_TRACK:  "bg-green-500/10 text-green-400 border-green-500/20",
@@ -40,46 +41,187 @@ function Stat({ label, value, sub }: { label: string; value: string | number; su
   );
 }
 
+function formatMarkdown(text: string) {
+  if (!text) return null;
+  return text.split('\n').map((line, i) => {
+    // Replace **bold** with <strong>bold</strong>
+    const parts = line.split(/(\*\*.*?\*\*)/g);
+    const formattedLine = parts.map((part, j) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={j} className="text-white font-semibold">{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+
+    if (line.trim().startsWith('- ')) {
+      return (
+        <div key={i} className="flex gap-2 ml-4 mt-1.5 mb-1.5">
+          <span className="text-purple-500 text-[10px] mt-0.5">■</span>
+          <span className="text-gray-300 leading-relaxed">{formattedLine.map((c, idx) => idx === 0 && typeof c === 'string' ? c.substring(2) : c)}</span>
+        </div>
+      );
+    }
+    
+    if (/^\d+\./.test(line.trim())) {
+      return <div key={i} className="mt-4 mb-2 text-white font-medium">{formattedLine}</div>;
+    }
+    
+    return <div key={i} className={line.trim() === '' ? 'h-2' : 'text-gray-300 leading-relaxed mb-1'}>{formattedLine}</div>;
+  });
+}
+
 // ── Executive Panel ──────────────────────────────────────────────────────────
 export function ExecutivePanel() {
   const [data, setData] = useState<any>(null);
+  const [brief, setBrief] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [briefLoading, setBriefLoading] = useState(true);
   const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
   useEffect(() => {
     fetch(`${API}/api/executive/dashboard`)
-      .then(r => r.json()).then(setData).catch(() => {}).finally(() => setLoading(false));
+      .then(r => r.json())
+      .then(setData)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+
+    fetch(`${API}/api/executive/brief`)
+      .then(r => r.json())
+      .then(setBrief)
+      .catch(() => {})
+      .finally(() => setBriefLoading(false));
   }, []);
 
   if (loading) return <Panel title="Executive Dashboard"><div className="h-40 flex items-center justify-center text-gray-300 animate-pulse text-sm">Loading…</div></Panel>;
-  if (!data) return null;
+  if (!data || !data.signals) return null;
 
-  const STATUS_ICON: Record<string, string> = { ON_TRACK: "✅", AT_RISK: "⚠️", OFF_TRACK: "🔴" };
+  const STATUS_ICON: Record<string, React.ReactNode> = { 
+    ON_TRACK: <CheckCircle2 className="w-8 h-8 text-green-500" />, 
+    AT_RISK: <AlertTriangle className="w-8 h-8 text-yellow-500" />, 
+    OFF_TRACK: <XCircle className="w-8 h-8 text-red-500" /> 
+  };
+  const sig = data.signals;
 
   return (
     <Panel title="Executive Dashboard" className="col-span-full">
-      <div className="flex items-center gap-3 mb-6 bg-[#111] border border-[#222] p-4 rounded-xl">
-        <span className="text-3xl">{STATUS_ICON[data.overall_status] ?? "❓"}</span>
-        <div>
-          <div className="text-xl font-bold text-white mb-1">Overall Status</div>
-          <StatusBadge value={data.overall_status} />
+      {/* Top Banner */}
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex items-center gap-3 bg-[#111] border border-[#222] py-3 px-5 rounded-xl w-fit">
+           <div className="w-10 h-10 rounded-xl bg-[#222] border border-[#333] flex items-center justify-center text-xl shadow-inner shrink-0">
+             {STATUS_ICON[data.overall_status] ?? "❓"}
+           </div>
+           <div>
+             <div className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-0.5">Company Engineering Health</div>
+             <div className="text-lg font-bold text-white leading-none mt-1">
+               System is <span className={data.overall_status === 'ON_TRACK' ? 'text-green-400' : data.overall_status === 'AT_RISK' ? 'text-yellow-400' : 'text-red-400'}>
+                 {data.overall_status.replace("_", " ")}
+               </span>
+             </div>
+           </div>
+        </div>
+
+        {/* AI Brief */}
+        <div className="bg-purple-500/5 border border-purple-500/20 p-5 rounded-xl relative">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-purple-500/10">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-purple-400" />
+              <span className="text-sm font-bold text-purple-400">Meridian Executive Summary</span>
+            </div>
+            <span className="text-[9px] font-bold bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/30">
+              Llama 3 70B
+            </span>
+          </div>
+          {briefLoading ? (
+            <div className="space-y-3 mt-2">
+              <div className="h-3 bg-purple-500/10 rounded w-3/4 animate-pulse" />
+              <div className="h-3 bg-purple-500/10 rounded w-full animate-pulse" />
+              <div className="h-3 bg-purple-500/10 rounded w-5/6 animate-pulse" />
+            </div>
+          ) : (
+            <div className="text-xs text-gray-300">
+              {formatMarkdown(brief?.brief || "AI brief unavailable.")}
+            </div>
+          )}
         </div>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
-        {(data.panels ?? []).map((p: any) => (
-          <div key={p.id} className="bg-[#111] border border-[#222] rounded-xl p-3 flex flex-col items-center text-center justify-center">
-            <div className="text-[9px] text-gray-400 uppercase tracking-wider mb-2 text-balance leading-tight h-6 flex items-end">{p.title}</div>
-            <div className={`text-sm font-bold ${
-              p.type === "status"
-                ? STATUS_STYLE[p.value]?.split(" ")[1] ?? "text-gray-300"
-                : p.type === "risk"
-                ? RISK_STYLE[p.value]?.split(" ")[1] ?? "text-gray-300"
-                : "text-white"
-            }`}>
-              {String(p.value).replace("_", " ")}
+
+      {/* KPI Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <Stat label="Total Eng Cost (30d)" value={`$${(sig.finance?.total_cost_usd ?? 0).toLocaleString()}`} sub={`ROI Score: ${sig.finance?.roi_score ?? '-'}`} />
+        <Stat label="Sprint Completion" value={`${sig.pm?.completion_pct ?? 0}%`} sub={`Scope Creep: ${sig.pm?.scope_creep_pct ?? 0}%`} />
+        <Stat label="Avg PR Cycle" value={`${sig.github?.pr_metrics?.avg_cycle_hours ?? '-'}h`} sub={`${sig.github?.pr_metrics?.total_prs ?? 0} PRs analyzed`} />
+        <Stat label="Burnout Risk" value={`${sig.hr?.team_burnout_risk?.score ?? 0}/100`} sub={`${sig.hr?.after_hours_pct ?? 0}% after-hours`} />
+      </div>
+
+      {/* Visual Bars for Cross-Domain metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Engineering Delivery Pipeline */}
+        <div className="bg-[#111] border border-[#222] p-5 rounded-xl">
+          <h4 className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-5 pb-3 border-b border-[#222]">Delivery Pipeline Health</h4>
+          <div className="space-y-5">
+            <div>
+              <div className="flex justify-between text-xs mb-2">
+                <span className="text-gray-300">Sprint Confidence ({sig.pm?.sprint_name})</span>
+                <span className="font-mono text-gray-400 bg-[#222] px-1.5 py-0.5 rounded">{sig.pm?.delivery_confidence?.score ?? 0}%</span>
+              </div>
+              <div className="h-2 bg-[#222] rounded-full overflow-hidden">
+                <div className={`h-full ${sig.pm?.delivery_confidence?.status === 'ON_TRACK' ? 'bg-green-500' : sig.pm?.delivery_confidence?.status === 'AT_RISK' ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${sig.pm?.delivery_confidence?.score ?? 0}%` }} />
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-xs mb-2">
+                <span className="text-gray-300">Code Review Velocity</span>
+                <span className="font-mono text-gray-400 bg-[#222] px-1.5 py-0.5 rounded">{sig.github?.quick_merges ?? 0} quick merges</span>
+              </div>
+              <div className="h-2 bg-[#222] rounded-full overflow-hidden">
+                <div className="h-full bg-purple-500" style={{ width: `${Math.min(100, ((sig.github?.quick_merges ?? 0) / (sig.github?.pr_metrics?.total_prs || 1)) * 100)}%` }} />
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-xs mb-2">
+                <span className="text-gray-300">Dependency Blockers</span>
+                <span className="font-mono text-gray-400 bg-[#222] px-1.5 py-0.5 rounded">{sig.pm?.blocked_issues ?? 0} issues</span>
+              </div>
+              <div className="h-2 bg-[#222] rounded-full overflow-hidden">
+                <div className="h-full bg-orange-500" style={{ width: `${Math.min(100, (sig.pm?.blocked_issues ?? 0) * 10)}%` }} />
+              </div>
             </div>
           </div>
-        ))}
+        </div>
+
+        {/* Resources & Financials */}
+        <div className="bg-[#111] border border-[#222] p-5 rounded-xl">
+          <h4 className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-5 pb-3 border-b border-[#222]">Resources & Investment</h4>
+          <div className="space-y-5">
+            <div>
+              <div className="flex justify-between items-center text-xs mb-2">
+                <span className="text-gray-300">Budget Utilization</span>
+                <StatusBadge value={sig.finance?.budget_health} />
+              </div>
+              <div className="h-2 bg-[#222] rounded-full overflow-hidden">
+                <div className={`h-full ${sig.finance?.budget_health === 'ON_TRACK' ? 'bg-green-500' : 'bg-red-500'}`} style={{ width: '75%' }} />
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-xs mb-2">
+                <span className="text-gray-300">Team Sustainable Pace</span>
+                <span className="font-mono text-gray-400 bg-[#222] px-1.5 py-0.5 rounded">{100 - (sig.hr?.team_burnout_risk?.score ?? 0)}/100</span>
+              </div>
+              <div className="h-2 bg-[#222] rounded-full overflow-hidden">
+                <div className={`h-full ${sig.hr?.team_burnout_risk?.level === 'LOW' ? 'bg-green-500' : sig.hr?.team_burnout_risk?.level === 'MEDIUM' ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${100 - (sig.hr?.team_burnout_risk?.score ?? 0)}%` }} />
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-xs mb-2">
+                <span className="text-gray-300">Cost per PR</span>
+                <span className="font-mono text-gray-400 bg-[#222] px-1.5 py-0.5 rounded">${sig.finance?.cost_per_pr_usd?.toLocaleString() ?? 0}</span>
+              </div>
+              <div className="h-2 bg-[#222] rounded-full overflow-hidden">
+                <div className="h-full bg-blue-500" style={{ width: '60%' }} />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </Panel>
   );
@@ -360,7 +502,7 @@ export function PMPanel() {
                   </div>
                   <div className="flex justify-between items-center text-[10px]">
                     <span className={`px-2 py-0.5 rounded font-bold ${issue.status === 'Done' ? 'bg-green-500/10 text-green-400' : 'bg-[#222] text-gray-400'}`}>{issue.status}</span>
-                    {issue.assignee && <span className="text-gray-500 flex items-center gap-1.5">👤 {issue.assignee}</span>}
+                    {issue.assignee && <span className="text-gray-500 flex items-center gap-1.5"><User className="w-3 h-3" /> {issue.assignee}</span>}
                   </div>
                 </div>
               ))}
@@ -518,7 +660,7 @@ export function SentryPanel() {
         {data.data_related > 0 && (
           <div className="md:col-span-2 bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-amber-500 text-lg">⚠️</span>
+              <AlertTriangle className="text-amber-500 w-5 h-5" />
               <div className="text-[10px] font-bold text-amber-500 uppercase tracking-wider">Data Pipeline Exceptions Detected</div>
             </div>
             <p className="text-xs text-amber-400/80 leading-relaxed ml-7">{data.correlation_note}</p>

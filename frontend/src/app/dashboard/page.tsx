@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Globe, Brain } from "lucide-react";
+import { Globe, Brain, BarChart3, CheckCircle2, Link2 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import EventTicker from "@/components/EventTicker";
 import AgentChat from "@/components/AgentChat";
@@ -15,37 +15,16 @@ const INTELLIGENCE_TABS = [
 ];
 
 function IntelligenceHub() {
-  const [activeTab, setActiveTab] = useState("executive");
-  
-  const ActiveComponent = INTELLIGENCE_TABS.find(tab => tab.id === activeTab)?.component || ExecutivePanel;
-  
   return (
     <div className="vercel-card rounded-2xl p-6 shadow-sm">
       <div className="mb-6">
         <h2 className="text-lg font-bold text-white mb-2">Intelligence Hub</h2>
-        <p className="text-sm text-gray-400 mb-4">Cross-domain signals across GitHub, HR, Finance, and PM</p>
-        
-        {/* Tab Navigation */}
-        <div className="flex gap-2 mb-6">
-          {INTELLIGENCE_TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                activeTab === tab.id
-                  ? "bg-white text-black"
-                  : "bg-[#111] text-gray-400 hover:text-white hover:bg-[#222] border border-[#333]"
-              }`}
-            >
-              {tab.name}
-            </button>
-          ))}
-        </div>
+        <p className="text-sm text-gray-400">Cross-domain signals across GitHub, HR, Finance, and PM</p>
       </div>
       
       {/* Active Panel */}
       <div className="min-h-[400px]">
-        <ActiveComponent />
+        <ExecutivePanel />
       </div>
     </div>
   );
@@ -212,7 +191,7 @@ export default function Dashboard() {
           <div className="vercel-card rounded-2xl p-6 shadow-sm">
             <div className="flex items-start justify-between mb-1">
               <div className="flex items-center gap-2">
-                <span className="text-lg">📊</span>
+                <BarChart3 className="w-5 h-5 text-gray-400" />
                 <h1 className="text-2xl font-bold text-white">Estate Health Overview</h1>
               </div>
               <span className="text-xs bg-black border border-[#333] text-gray-400 px-3 py-1.5 rounded-lg font-medium">
@@ -252,92 +231,88 @@ export default function Dashboard() {
           {/* OpenMetadata Source Data */}
           <OpenMetadataAssets />
 
-          {/* Bottom row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
-            {/* Open incidents */}
-            <div className="vercel-card rounded-2xl p-5 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-sm font-bold text-white">Open Incidents</h2>
-                  <p className="text-xs text-gray-400 mt-0.5">Click resolve to close</p>
-                </div>
-                <span className="text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20 px-2.5 py-1 rounded-lg">
-                  {incidents.length} open
-                </span>
-              </div>
-              {incidents.length === 0 && !loading ? (
-                <div className="flex flex-col items-center justify-center py-10 text-gray-300">
-                  <span className="text-3xl mb-2">✅</span>
-                  <span className="text-sm">No open incidents</span>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {incidents.map((inc) => (
-                    <div key={inc.id} className="border border-[#222] rounded-xl p-3 hover:border-[#333] transition-colors">
-                      <div className="flex items-start gap-2">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0 ${severityColor[inc.severity]}`}>
-                          {inc.severity.toUpperCase()}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs font-semibold text-white leading-snug">{inc.title}</div>
-                          {inc.table_fqn && (
-                            <div className="text-[10px] font-mono text-gray-400 mt-0.5 truncate">{inc.table_fqn}</div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-[10px] text-gray-400">{timeAgo(inc.created_at)}{inc.owner ? ` · @${inc.owner}` : ""}</span>
-                        <button
-                          onClick={() => handleResolve(inc.id)}
-                          className="text-[10px] font-semibold text-gray-500 hover:text-white border border-[#333] hover:border-gray-400 px-2 py-0.5 rounded-md transition-colors"
-                        >
-                          Resolve
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Integrations */}
-            <div className="vercel-card rounded-2xl p-5 shadow-sm flex flex-col justify-between text-white">
+          {/* Open incidents */}
+          <div className="vercel-card rounded-2xl p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
               <div>
-                <div className="text-2xl mb-3">🔗</div>
-                <h3 className="text-lg font-bold mb-2">Integrations</h3>
-                <p className="text-sm text-gray-400 leading-relaxed">
-                  Live data sources connected to the Meridian AI agent.
-                </p>
+                <h2 className="text-sm font-bold text-white">Open Incidents</h2>
+                <p className="text-xs text-gray-400 mt-0.5">Click resolve to close</p>
               </div>
-              <div className="mt-6 space-y-2">
-                {[
-                  { name: "OpenMetadata", desc: "Catalog · Lineage · DQ",    connected: true  },
-                  { name: "GitHub",       desc: "PR metrics · Commit patterns", connected: true  },
-                  { name: "Jira",         desc: "Sprint health · Tickets",    connected: true  },
-                  { name: "Sentry",       desc: "Error tracking · Data correlation", connected: true  },
-                  { name: "dbt Cloud",    desc: "Pipeline runs · Test failures", connected: true  },
-                  { name: "PagerDuty",    desc: "On-call · Incident actions", connected: true  },
-                  { name: "Groq AI",      desc: "Llama 3.3 70B · ReAct Agent", connected: true  },
-                ].map((int) => (
-                  <div key={int.name} className="flex items-center justify-between bg-[#111] border border-[#222] rounded-xl px-4 py-2.5">
-                    <div>
-                      <div className="text-sm font-medium text-white">{int.name}</div>
-                      <div className="text-[10px] text-gray-400">{int.desc}</div>
+              <span className="text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20 px-2.5 py-1 rounded-lg">
+                {incidents.length} open
+              </span>
+            </div>
+            {incidents.length === 0 && !loading ? (
+              <div className="flex flex-col items-center justify-center py-8 text-gray-300">
+                <CheckCircle2 className="w-8 h-8 mb-2 text-green-500" />
+                <span className="text-sm">No open incidents</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2">
+                {incidents.map((inc) => (
+                  <div key={inc.id} className="border border-[#222] rounded-xl p-3 hover:border-[#333] transition-colors flex flex-col justify-between h-full">
+                    <div className="flex items-start gap-2 mb-3">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0 ${severityColor[inc.severity]}`}>
+                        {inc.severity.toUpperCase()}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-semibold text-white leading-snug">{inc.title}</div>
+                        {inc.table_fqn && (
+                          <div className="text-[10px] font-mono text-gray-400 mt-0.5 truncate">{inc.table_fqn}</div>
+                        )}
+                      </div>
                     </div>
-                    <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${int.connected ? "bg-green-500/10 border border-green-500/20 text-green-400" : "bg-[#222] text-gray-500"}`}>
-                      {int.connected ? "Active" : "Set up →"}
-                    </span>
+                    <div className="flex items-center justify-between mt-auto">
+                      <span className="text-[10px] text-gray-400">{timeAgo(inc.created_at)}{inc.owner ? ` · @${inc.owner}` : ""}</span>
+                      <button
+                        onClick={() => handleResolve(inc.id)}
+                        className="text-[10px] font-semibold text-gray-500 hover:text-white border border-[#333] hover:border-gray-400 px-2 py-0.5 rounded-md transition-colors"
+                      >
+                        Resolve
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
+            )}
           </div>
         </div>
 
         {/* ── Right ── */}
         <div className="space-y-5">
           <EventTicker />
+
+          {/* Integrations */}
+          <div className="vercel-card rounded-2xl p-5 shadow-sm flex flex-col justify-between text-white">
+            <div>
+              <div className="mb-3"><Link2 className="w-6 h-6 text-gray-400" /></div>
+              <h3 className="text-lg font-bold mb-2">Integrations</h3>
+              <p className="text-sm text-gray-400 leading-relaxed">
+                Live data sources connected to the Meridian AI agent.
+              </p>
+            </div>
+            <div className="mt-6 space-y-2">
+              {[
+                { name: "OpenMetadata", desc: "Catalog · Lineage · DQ",    connected: true  },
+                { name: "GitHub",       desc: "PR metrics · Commit patterns", connected: true  },
+                { name: "Jira",         desc: "Sprint health · Tickets",    connected: true  },
+                { name: "Sentry",       desc: "Error tracking · Data correlation", connected: true  },
+                { name: "dbt Cloud",    desc: "Pipeline runs · Test failures", connected: true  },
+                { name: "PagerDuty",    desc: "On-call · Incident actions", connected: true  },
+                { name: "Groq AI",      desc: "Llama 3.3 70B · ReAct Agent", connected: true  },
+              ].map((int) => (
+                <div key={int.name} className="flex items-center justify-between bg-[#111] border border-[#222] rounded-xl px-4 py-2.5">
+                  <div>
+                    <div className="text-sm font-medium text-white">{int.name}</div>
+                    <div className="text-[10px] text-gray-400">{int.desc}</div>
+                  </div>
+                  <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${int.connected ? "bg-green-500/10 border border-green-500/20 text-green-400" : "bg-[#222] text-gray-500"}`}>
+                    {int.connected ? "Active" : "Set up →"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 

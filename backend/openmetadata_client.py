@@ -29,7 +29,7 @@ class OpenMetadataClient:
         try:
             response = await self.client.get(
                 f"/tables/name/{fqn}",
-                params={"fields": "columns,owner,tags,followers,tableQueries"}
+                params={"fields": "columns,owners,tags,followers"}
             )
             if response.status_code == 404:
                 return None
