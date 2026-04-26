@@ -11,9 +11,9 @@ from database.db import init_db, get_events, get_incidents, get_stats, resolve_i
 from websocket_manager import manager
 from openmetadata_client import OpenMetadataClient
 
-om_client = OpenMetadataClient()
-
 load_dotenv(override=True)
+
+om_client = OpenMetadataClient()
 logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(title="Meridian API", version="2.1.0")
