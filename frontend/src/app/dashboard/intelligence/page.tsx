@@ -23,7 +23,7 @@ function GroqInsight({ tabId }: { tabId: string }) {
 
   useEffect(() => {
     setLoading(true);
-    const API = process.env.NEXT_PUBLIC_API_URL as string;
+    const API = (process.env.NEXT_PUBLIC_API_URL as string).replace(/\/$/, "");
     
     fetch(`${API}/api/intelligence/${tabId}/insight`)
       .then(r => r.json())
