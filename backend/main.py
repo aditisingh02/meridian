@@ -13,7 +13,7 @@ from openmetadata_client import OpenMetadataClient
 
 om_client = OpenMetadataClient()
 
-load_dotenv()
+load_dotenv(override=True)
 logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(title="Meridian API", version="2.1.0")
@@ -147,6 +147,60 @@ async def api_sentry_intelligence():
     from integrations.sentry_client import analyse
     return await analyse()
 
+@app.get("/api/intelligence/{domain}/insight")
+async def api_intelligence_insight(domain: str):
+    import json
+    from ai.llm import LLMClient
+    
+    # Get the raw data
+    data = {}
+    if domain == "github":
+        from intelligence import github_agent
+        data = await github_agent.analyse()
+    elif domain == "hr":
+        from intelligence import hr_intelligence
+        data = await hr_intelligence.analyse()
+    elif domain == "finance":
+        from intelligence import finance_intelligence
+        data = await finance_intelligence.analyse()
+    elif domain == "pm":
+        from intelligence import pm_intelligence
+        data = await pm_intelligence.analyse()
+    elif domain == "dbt":
+        from integrations.dbt_client import analyse
+        data = await analyse()
+    elif domain == "sentry":
+        from integrations.sentry_client import analyse
+        data = await analyse()
+    else:
+        raise HTTPException(status_code=400, detail="Invalid domain")
+        
+    client = LLMClient()
+    
+    if not client.client:
+        return {"insight": "Groq API key not configured. Cannot generate insights."}
+        
+    system_prompt = (
+        "You are an expert Engineering Manager & Data Governance AI. "
+        "Analyze the provided JSON metrics for a specific domain and write a concise, "
+        "insightful 2-3 sentence summary in plain text. Highlight key risks or positive trends. "
+        "Do not use markdown formatting like asterisks or bullet points. "
+        "Do not hallucinate or use external data."
+    )
+    
+    try:
+        response = await client.client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Domain: {domain}\nMetrics:\n{json.dumps(data, indent=2)}"}
+            ],
+            model="llama-3.3-70b-versatile",
+            temperature=0.2,
+        )
+        return {"insight": response.choices[0].message.content}
+    except Exception as e:
+        return {"insight": f"Failed to generate insight: {str(e)}"}
+
 
 # ── Executive API ─────────────────────────────────────────────────────────────
 @app.get("/api/executive/signals")
@@ -193,6 +247,49 @@ async def api_pd_resolve(dedup_key: str):
 @app.get("/api/pagerduty/status")
 async def api_pd_status():
     return {"configured": bool(os.getenv("PAGERDUTY_ROUTING_KEY"))}
+
+
+# ── Agent API ─────────────────────────────────────────────────────────────────
+@app.post("/api/agent/run")
+async def api_agent_run(body: dict):
+    """
+    Run the Meridian ReAct agent with a natural language goal.
+    Body: { "goal": "...", "dry_run": true }
+    """
+    from ai.agent import AgentRunner
+    goal    = body.get("goal", "").strip()
+    dry_run = body.get("dry_run", True)   # default to safe dry-run mode
+
+    if not goal:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="'goal' is required")
+
+    runner = AgentRunner(dry_run=dry_run)
+    return await runner.run(goal)
+
+
+@app.get("/api/agent/history")
+async def api_agent_history(limit: int = 10):
+    """Return recent agent run history."""
+    from ai import agent_memory
+    return {"runs": agent_memory.get_history(limit=limit)}
+
+
+@app.post("/api/agent/auto-triage")
+async def api_agent_auto_triage(body: dict):
+    """
+    Auto-Trigger the Agent on a critical incident from webhooks.
+    """
+    from ai.agent import AgentRunner
+    
+    incident_details = body.get("incident", {})
+    goal = f"Investigate this incident: {incident_details}. Determine if PagerDuty needs to be triggered or Jira ticket created."
+    dry_run = body.get("dry_run", True)
+    
+    runner = AgentRunner(dry_run=dry_run)
+    return await runner.run(goal)
+
+
 
 
 # ── Startup ───────────────────────────────────────────────────────────────────

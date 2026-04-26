@@ -5,11 +5,7 @@ import { Globe } from "lucide-react";
 import { useState, useEffect } from "react";
 import { api, QualityTest, SearchHit, TableColumn, TableDetails } from "@/lib/api";
 
-const NAV_LINKS = [
-  { name: "Overview", href: "/dashboard" },
-  { name: "Tables", href: "/dashboard/tables" },
-  { name: "Lineage", href: "/dashboard/lineage" },
-];
+import Navbar from "@/components/Navbar";
 
 export default function TablesPage() {
   const [query, setQuery] = useState("");
@@ -60,8 +56,8 @@ export default function TablesPage() {
         setLoadingDetails(true);
         setDetailsError(null);
         const [tableData, qualityData] = await Promise.all([
-          api.getTable(selectedFqn),
-          api.getQuality(selectedFqn).catch(() => null),
+          api.getTable(selectedFqn!),
+          api.getQuality(selectedFqn!).catch(() => null),
         ]);
 
         setTableDetails(tableData);
@@ -85,26 +81,7 @@ export default function TablesPage() {
 
   return (
     <div className="min-h-screen bg-black text-white selection:bg-white/20">
-      {/* Navbar */}
-      <div className="fixed top-5 left-0 right-0 z-50 flex justify-center px-4">
-        <nav className="flex items-center gap-1 bg-black/60 backdrop-blur-md border border-[#333] rounded-full px-2 py-2 shadow-xl shadow-black/50">
-          <Link href="/" className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-white/10 transition-colors shrink-0">
-            <Globe className="w-5 h-5 text-white" strokeWidth={2.5} />
-            <span className="font-semibold text-white text-sm">Meridian</span>
-          </Link>
-          <div className="w-px h-4 bg-[#333] mx-1" />
-          {NAV_LINKS.map((link) => (
-            <Link key={link.name} href={link.href}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                link.name === "Tables"
-                  ? "bg-white text-black"
-                  : "text-gray-400 hover:text-white hover:bg-white/10"
-              }`}
-            >{link.name}</Link>
-          ))}
-          <div className="w-8 h-8 rounded-full bg-[#222] flex items-center justify-center text-xs font-bold text-gray-400 ml-1">A</div>
-        </nav>
-      </div>
+      <Navbar />
 
       {/* Header */}
       <div className="max-w-[1400px] mx-auto px-5 pt-24 pb-4">
@@ -143,7 +120,7 @@ export default function TablesPage() {
                   if (!src?.fullyQualifiedName) return null;
                   const isSelected = selectedFqn === src.fullyQualifiedName;
                   return (
-                    <button key={src.fullyQualifiedName} onClick={() => setSelectedFqn(src.fullyQualifiedName)}
+                    <button key={src.fullyQualifiedName} onClick={() => setSelectedFqn(src.fullyQualifiedName || null)}
                       className={`w-full text-left px-4 py-3 hover:bg-[#111] transition-colors flex items-center justify-between border-l-4 ${isSelected ? "bg-[#111] border-white" : "border-transparent"}`}
                     >
                       <div>

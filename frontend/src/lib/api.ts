@@ -44,6 +44,27 @@ export interface Stats {
   schema_changes: number;
 }
 
+export interface AgentStep {
+  step: number;
+  type: "observation" | "action" | "conclusion";
+  tool?: string;
+  args?: Record<string, unknown>;
+  result?: unknown;
+  content?: string;
+  dry_run?: boolean;
+}
+
+export interface AgentRun {
+  goal: string;
+  dry_run: boolean;
+  steps_taken: number;
+  steps: AgentStep[];
+  actions_taken: string[];
+  conclusion: string;
+  duration_s: number;
+  timestamp: string;
+}
+
 export interface SearchHit {
   _source?: {
     name?: string;
@@ -132,6 +153,15 @@ export const api = {
       method: "PATCH",
     }),
 
+  runAgent: (goal: string, dry_run = true) =>
+    apiFetch<AgentRun>("/api/agent/run", {
+      method: "POST",
+      body: JSON.stringify({ goal, dry_run }),
+    }),
+
+  getAgentHistory: (limit = 10) =>
+    apiFetch<{ runs: AgentRun[] }>(`/api/agent/history?limit=${limit}`),
+
   getHealth: () => apiFetch<{ status: string; version: string; integrations: Record<string, boolean> }>("/health"),
   searchData: (query: string = "*") =>
     apiFetch<SearchResponse>(`/api/data/search?q=${encodeURIComponent(query)}`),
@@ -142,3 +172,4 @@ export const api = {
   getQuality: (fqn: string) =>
     apiFetch<QualityResponse>(`/api/data/quality?fqn=${encodeURIComponent(fqn)}`),
 };
+
