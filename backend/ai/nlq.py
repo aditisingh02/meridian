@@ -25,7 +25,7 @@ def translate_to_om_api(user_question: str) -> str:
             {"role": "system", "content": "You output only the raw API path."},
             {"role": "user", "content": prompt}
         ],
-        model="llama3-8b-8192",
+        model="llama-3.1-8b-instant",
     )
     
     return response.choices[0].message.content.strip()
@@ -41,7 +41,7 @@ def analyze_pii_column(column_name: str) -> bool:
             {"role": "system", "content": "You answer only Yes or No."},
             {"role": "user", "content": prompt}
         ],
-        model="llama3-8b-8192",
+        model="llama-3.1-8b-instant",
     )
     
     answer = response.choices[0].message.content.strip().lower()

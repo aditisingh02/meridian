@@ -1,32 +1,51 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-
-interface OMEvent {
-  id: string;
-  type: string;
-  message: string;
-  timestamp: string;
-}
+import { api, WS_URL, type MeridianEvent } from "@/lib/api";
 
 type ConnectionStatus = "connecting" | "connected" | "disconnected";
 
-const WS_URL = "ws://localhost:8000/ws/events";
 const RECONNECT_DELAY_MS = 3000;
 
+const TYPE_LABELS: Record<string, { label: string; dot: string }> = {
+  pii_detected:   { label: "PII",     dot: "bg-amber-400" },
+  schema_change:  { label: "Schema",  dot: "bg-blue-400"  },
+  entity_updated: { label: "Updated", dot: "bg-gray-300"  },
+  test_failure:   { label: "Failure", dot: "bg-red-400"   },
+};
+
+const fallback = { label: "Event", dot: "bg-gray-300" };
+
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
 export default function EventTicker() {
-  const [events, setEvents] = useState<OMEvent[]>([]);
+  const [events, setEvents] = useState<MeridianEvent[]>([]);
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
   const wsRef = useRef<WebSocket | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const unmountedRef = useRef(false);
 
+  // Pre-populate from REST API on mount
+  useEffect(() => {
+    api.getEvents(20).then(({ events: recent }) => {
+      setEvents(recent);
+    }).catch(() => {
+      // Backend not ready yet — WebSocket will populate when events arrive
+    });
+  }, []);
+
+  // WebSocket live stream
   useEffect(() => {
     unmountedRef.current = false;
 
     function connect() {
       if (unmountedRef.current) return;
-
       setStatus("connecting");
       const ws = new WebSocket(WS_URL);
       wsRef.current = ws;
@@ -38,28 +57,25 @@ export default function EventTicker() {
 
       ws.onmessage = (event) => {
         try {
-          const data = JSON.parse(event.data) as OMEvent;
-          setEvents((prev) => [data, ...prev].slice(0, 15));
+          const data = JSON.parse(event.data) as MeridianEvent;
+          setEvents((prev) => [data, ...prev].slice(0, 50));
         } catch {
           // Silently ignore malformed messages
         }
       };
 
       ws.onerror = () => {
-        // Browser intentionally gives no detail on WS errors for security.
-        // onclose fires right after and handles reconnection.
+        // Browser gives no detail — onclose handles reconnect
       };
 
       ws.onclose = () => {
         if (unmountedRef.current) return;
         setStatus("disconnected");
-        // Reconnect after delay
         timerRef.current = setTimeout(connect, RECONNECT_DELAY_MS);
       };
     }
 
     connect();
-
     return () => {
       unmountedRef.current = true;
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -72,7 +88,6 @@ export default function EventTicker() {
     connected:    "bg-green-500",
     disconnected: "bg-red-400",
   };
-
   const statusLabel: Record<ConnectionStatus, string> = {
     connecting:   "Connecting...",
     connected:    "Live",
@@ -80,9 +95,9 @@ export default function EventTicker() {
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm relative overflow-hidden h-[600px] flex flex-col">
-      <div className="flex items-center justify-between mb-5">
-        <h2 className="text-sm font-semibold text-gray-800 tracking-wide uppercase">
+    <div className="bg-white rounded-2xl p-5 flex flex-col h-[560px]">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
           Live Event Stream
         </h2>
         <div className="flex items-center gap-1.5 text-xs text-gray-400">
@@ -91,33 +106,39 @@ export default function EventTicker() {
         </div>
       </div>
 
-      <div className="space-y-3 overflow-y-auto flex-1 pr-2 custom-scrollbar">
-        {events.map((evt) => (
-          <div key={evt.id} className="animate-fade-in bg-white rounded-lg p-4 border border-gray-100 transition-colors">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-[10px] font-semibold px-2 py-1 rounded tracking-widest uppercase border border-gray-200 text-gray-500">
-                {evt.type.replace(/_/g, " ")}
-              </span>
-              <span className="text-[10px] text-gray-400 font-mono">
-                {new Date(evt.timestamp).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  second: "2-digit",
-                })}
-              </span>
-            </div>
-            <p className="text-sm text-gray-700 leading-relaxed font-medium">{evt.message}</p>
+      <div className="space-y-2 overflow-y-auto flex-1 pr-1">
+        {events.length === 0 ? (
+          <div className="h-full flex items-center justify-center text-sm text-gray-400 italic">
+            {status === "connected" ? "Waiting for events…" : "Connecting to stream…"}
           </div>
-        ))}
-
-        {events.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center gap-2 text-gray-400 text-sm">
-            {status === "connected" ? (
-              <span>Waiting for events...</span>
-            ) : (
-              <span className="italic">Connecting to OpenMetadata...</span>
-            )}
-          </div>
+        ) : (
+          events.map((evt) => {
+            const meta = TYPE_LABELS[evt.type] ?? fallback;
+            return (
+              <div
+                key={evt.id}
+                className="flex items-start gap-2.5 p-3 rounded-xl border border-gray-100 hover:border-gray-200 transition-colors"
+              >
+                <span className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${meta.dot}`} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-0.5">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                      {meta.label}
+                    </span>
+                    <span className="text-[10px] text-gray-300 font-mono flex-shrink-0">
+                      {formatTime(evt.timestamp)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-700 leading-snug">{evt.message}</p>
+                  {evt.table_fqn && (
+                    <p className="text-[10px] text-gray-400 font-mono mt-0.5 truncate">
+                      {evt.table_fqn}
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })
         )}
       </div>
     </div>
