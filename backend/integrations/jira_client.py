@@ -49,9 +49,12 @@ async def get_sprint_issues(sprint_id: int) -> list[dict[str, Any]]:
     """Return all issues in a sprint."""
     if not _configured():
         return []
-    async with _client() as c:
-        r = await c.get(f"/search", params={
-            "jql": f"sprint = {sprint_id} ORDER BY updated DESC",
+    async with httpx.AsyncClient(
+        base_url=f"{JIRA_BASE_URL}/rest/agile/1.0",
+        headers={"Authorization": _auth_header(), "Accept": "application/json"},
+        timeout=15,
+    ) as c:
+        r = await c.get(f"/sprint/{sprint_id}/issue", params={
             "fields": "summary,status,assignee,priority,created,updated,storyPoints,labels",
             "maxResults": 200,
         })
@@ -123,3 +126,55 @@ async def get_pending_issues(jql: str | None = None) -> list[dict[str, Any]]:
             }
             for i in issues
         ]
+
+
+async def create_issue(
+    summary: str,
+    description: str = "",
+    priority: str = "Medium",
+    issue_type: str = "Task",
+) -> dict[str, Any]:
+    """Create a new Jira issue in the configured project."""
+    if not _configured() or not JIRA_PROJECT:
+        return {"status": "not_configured", "message": "JIRA_* env vars or JIRA_PROJECT_KEY not set"}
+
+    payload: dict[str, Any] = {
+        "fields": {
+            "project":   {"key": JIRA_PROJECT},
+            "summary":   summary,
+            "issuetype": {"name": issue_type},
+            "priority":  {"name": priority},
+        }
+    }
+    if description:
+        payload["fields"]["description"] = {
+            "type":    "doc",
+            "version": 1,
+            "content": [
+                {
+                    "type":    "paragraph",
+                    "content": [{"type": "text", "text": description}],
+                }
+            ],
+        }
+
+    async with httpx.AsyncClient(
+        base_url=f"{JIRA_BASE_URL}/rest/api/3",
+        headers={
+            "Authorization": _auth_header(),
+            "Accept":        "application/json",
+            "Content-Type":  "application/json",
+        },
+        timeout=15,
+    ) as c:
+        r = await c.post("/issue", json=payload)
+        if r.status_code not in (200, 201):
+            return {"status": "error", "code": r.status_code, "body": r.text}
+        data = r.json()
+        return {
+            "status": "created",
+            "key":    data.get("key"),
+            "id":     data.get("id"),
+            "url":    f"{JIRA_BASE_URL}/browse/{data.get('key')}",
+        }
+

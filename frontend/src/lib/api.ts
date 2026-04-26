@@ -44,6 +44,27 @@ export interface Stats {
   schema_changes: number;
 }
 
+export interface AgentStep {
+  step: number;
+  type: "observation" | "action" | "conclusion";
+  tool?: string;
+  args?: Record<string, unknown>;
+  result?: unknown;
+  content?: string;
+  dry_run?: boolean;
+}
+
+export interface AgentRun {
+  goal: string;
+  dry_run: boolean;
+  steps_taken: number;
+  steps: AgentStep[];
+  actions_taken: string[];
+  conclusion: string;
+  duration_s: number;
+  timestamp: string;
+}
+
 // ── API calls ──────────────────────────────────────────────────────────────
 
 export const api = {
@@ -61,4 +82,14 @@ export const api = {
     apiFetch<{ status: string; id: string }>(`/api/incidents/${id}/resolve`, {
       method: "PATCH",
     }),
+
+  runAgent: (goal: string, dry_run = true) =>
+    apiFetch<AgentRun>("/api/agent/run", {
+      method: "POST",
+      body: JSON.stringify({ goal, dry_run }),
+    }),
+
+  getAgentHistory: (limit = 10) =>
+    apiFetch<{ runs: AgentRun[] }>(`/api/agent/history?limit=${limit}`),
 };
+

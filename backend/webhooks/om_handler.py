@@ -52,6 +52,17 @@ async def handle_om_webhook(request: Request):
             owner="data-governance",
         )
 
+    # Auto-Triage: dispatch AgentRunner if it's a data quality failure or critical PII
+    if has_pii or event_type == "testCaseFailed":  # Assuming testCaseFailed is a possible eventType
+        from ai.agent import AgentRunner
+        import asyncio
+        
+        goal = f"Investigate this data quality failure or critical PII event on {fqn} and determine if PagerDuty needs to be triggered or Jira ticket created."
+        runner = AgentRunner(dry_run=True)  # Dry run by default for safety
+        
+        # Fire and forget
+        asyncio.create_task(runner.run(goal))
+
     # Broadcast to WebSocket clients
     await manager.broadcast(event)
 

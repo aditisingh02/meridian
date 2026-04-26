@@ -29,7 +29,7 @@ async def analyse(days: int = 14) -> dict[str, Any]:
     if not sprint.get("configured"):
         return {"configured": False, "message": "Set JIRA_* env vars to enable PM intelligence."}
 
-    if sprint.get("sprint") is None:
+    if sprint.get("sprint") is None and "sprint_name" not in sprint:
         return {"configured": True, "sprint": None, "message": "No active sprint found."}
 
     # Blocked / dependency risk

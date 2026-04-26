@@ -4,10 +4,11 @@ import Link from "next/link";
 import { Globe } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import EventTicker from "@/components/EventTicker";
+import AgentChat from "@/components/AgentChat";
 import HealthMap from "@/components/HealthMap";
 import { api, type Stats, type Incident } from "@/lib/api";
 
-const NAV_LINKS = ["Overview", "Tables", "Incidents", "Governance", "Lineage"];
+const NAV_LINKS = ["Overview", "Tables", "Lineage"];
 
 const severityColor: Record<string, string> = {
   critical: "bg-red-500/10 text-red-400 border border-red-500/20",
@@ -219,15 +220,18 @@ export default function Dashboard() {
                 <div className="text-2xl mb-3">🔗</div>
                 <h3 className="text-lg font-bold mb-2">Integrations</h3>
                 <p className="text-sm text-gray-400 leading-relaxed">
-                  All three data pipelines are active and routing events to the dashboard and Slack.
+                  Live data sources connected to the Meridian AI agent.
                 </p>
               </div>
               <div className="mt-6 space-y-2">
                 {[
-                  { name: "OpenMetadata", desc: "Webhook connected",      connected: true  },
-                  { name: "GitHub",       desc: "PR impact watcher",       connected: true  },
-                  { name: "Slack",        desc: "Bot + Socket Mode",        connected: !!process.env.NEXT_PUBLIC_SLACK_CONNECTED },
-                  { name: "Groq AI",      desc: "llama-3.1-8b-instant",    connected: true  },
+                  { name: "OpenMetadata", desc: "Catalog · Lineage · DQ",    connected: true  },
+                  { name: "GitHub",       desc: "PR metrics · Commit patterns", connected: true  },
+                  { name: "Jira",         desc: "Sprint health · Tickets",    connected: true  },
+                  { name: "Sentry",       desc: "Error tracking · Data correlation", connected: true  },
+                  { name: "dbt Cloud",    desc: "Pipeline runs · Test failures", connected: true  },
+                  { name: "PagerDuty",    desc: "On-call · Incident actions", connected: true  },
+                  { name: "Groq AI",      desc: "Llama 3.3 70B · ReAct Agent", connected: true  },
                 ].map((int) => (
                   <div key={int.name} className="flex items-center justify-between bg-[#111] border border-[#222] rounded-xl px-4 py-2.5">
                     <div>
@@ -247,6 +251,7 @@ export default function Dashboard() {
         {/* ── Right ── */}
         <div className="space-y-5">
           <EventTicker />
+          <AgentChat />
         </div>
       </div>
     </div>

@@ -13,7 +13,7 @@ from openmetadata_client import OpenMetadataClient
 
 om_client = OpenMetadataClient()
 
-load_dotenv()
+load_dotenv(override=True)
 logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(title="Meridian API", version="2.1.0")
@@ -193,6 +193,49 @@ async def api_pd_resolve(dedup_key: str):
 @app.get("/api/pagerduty/status")
 async def api_pd_status():
     return {"configured": bool(os.getenv("PAGERDUTY_ROUTING_KEY"))}
+
+
+# ── Agent API ─────────────────────────────────────────────────────────────────
+@app.post("/api/agent/run")
+async def api_agent_run(body: dict):
+    """
+    Run the Meridian ReAct agent with a natural language goal.
+    Body: { "goal": "...", "dry_run": true }
+    """
+    from ai.agent import AgentRunner
+    goal    = body.get("goal", "").strip()
+    dry_run = body.get("dry_run", True)   # default to safe dry-run mode
+
+    if not goal:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="'goal' is required")
+
+    runner = AgentRunner(dry_run=dry_run)
+    return await runner.run(goal)
+
+
+@app.get("/api/agent/history")
+async def api_agent_history(limit: int = 10):
+    """Return recent agent run history."""
+    from ai import agent_memory
+    return {"runs": agent_memory.get_history(limit=limit)}
+
+
+@app.post("/api/agent/auto-triage")
+async def api_agent_auto_triage(body: dict):
+    """
+    Auto-Trigger the Agent on a critical incident from webhooks.
+    """
+    from ai.agent import AgentRunner
+    
+    incident_details = body.get("incident", {})
+    goal = f"Investigate this incident: {incident_details}. Determine if PagerDuty needs to be triggered or Jira ticket created."
+    dry_run = body.get("dry_run", True)
+    
+    runner = AgentRunner(dry_run=dry_run)
+    return await runner.run(goal)
+
+
 
 
 # ── Startup ───────────────────────────────────────────────────────────────────
