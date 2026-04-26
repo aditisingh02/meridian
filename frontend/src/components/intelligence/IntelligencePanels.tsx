@@ -308,8 +308,8 @@ export function DBTPanel() {
   const statusColor: Record<string, string> = {
     Success:   "bg-green-500/10 text-green-400 border border-green-500/20",
     Error:     "bg-red-500/10 text-red-400 border border-red-500/20",
-    Running:   "bg-blue-100 text-blue-700",
-    Cancelled: "bg-gray-100 text-gray-400",
+    Running:   "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+    Cancelled: "bg-[#222] text-gray-400 border border-[#333]",
   };
 
   return (
@@ -327,7 +327,7 @@ export function DBTPanel() {
           <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Latest Run</div>
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-gray-300">{latest.job_name || "Job"}</span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusColor[latest.status] ?? "bg-gray-100 text-gray-400"}`}>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusColor[latest.status] ?? "bg-[#222] text-gray-400 border border-[#333]"}`}>
               {latest.status}
             </span>
           </div>
@@ -344,7 +344,7 @@ export function DBTPanel() {
           <div className="space-y-1.5">
             {data.test_failures.slice(0, 4).map((f: any, i: number) => (
               <div key={i} className="flex items-start gap-2 text-xs">
-                <span className="mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 bg-red-100 text-red-600">
+                <span className="mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 bg-red-500/10 text-red-400 border border-red-500/20">
                   {f.status.toUpperCase()}
                 </span>
                 <span className="text-gray-400 font-mono truncate">{f.test}</span>
@@ -360,7 +360,7 @@ export function DBTPanel() {
             {data.recent_runs.slice(0, 5).map((r: any) => (
               <div key={r.id} className="flex items-center justify-between text-xs">
                 <span className="text-gray-400 truncate max-w-[140px]">{r.job}</span>
-                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${statusColor[r.status] ?? "bg-gray-100 text-gray-400"}`}>
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${statusColor[r.status] ?? "bg-[#222] text-gray-400 border border-[#333]"}`}>
                   {r.status}
                 </span>
               </div>
@@ -390,7 +390,7 @@ export function SentryPanel() {
     </Panel>
   );
 
-  const trendColor = data.error_trend === "spiking" ? "text-red-500" : data.error_trend === "declining" ? "text-green-600" : "text-gray-400";
+  const trendColor = data.error_trend === "spiking" ? "text-red-500" : data.error_trend === "declining" ? "text-green-500" : "text-gray-400";
   const trendIcon  = data.error_trend === "spiking" ? "↑" : data.error_trend === "declining" ? "↓" : "→";
 
   return (
@@ -408,9 +408,9 @@ export function SentryPanel() {
         <Stat label="Data-related" value={data.data_related ?? "—"} />
       </div>
       {data.data_related > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3">
-          <div className="text-[10px] font-bold text-amber-700 uppercase tracking-wider mb-1">⚠️ Data Pipeline Errors</div>
-          <p className="text-xs text-amber-600">{data.correlation_note}</p>
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 mb-3">
+          <div className="text-[10px] font-bold text-amber-500 uppercase tracking-wider mb-1">⚠️ Data Pipeline Errors</div>
+          <p className="text-xs text-amber-400">{data.correlation_note}</p>
         </div>
       )}
       {data.top_issues?.length > 0 && (
@@ -421,7 +421,7 @@ export function SentryPanel() {
               <div key={issue.id} className="flex items-start gap-2">
                 <span className={`mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${
                   issue.level === "fatal" ? "bg-red-500/10 text-red-400 border border-red-500/20" :
-                  issue.level === "error" ? "bg-orange-100 text-orange-600" :
+                  issue.level === "error" ? "bg-orange-500/10 text-orange-400 border border-orange-500/20" :
                   "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
                 }`}>
                   {issue.level.toUpperCase()}
@@ -431,7 +431,7 @@ export function SentryPanel() {
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-[10px] text-gray-400">{issue.count} events</span>
                     {issue.data_related && (
-                      <span className="text-[9px] font-bold bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded">DATA</span>
+                      <span className="text-[9px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded">DATA</span>
                     )}
                   </div>
                 </div>

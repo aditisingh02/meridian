@@ -75,11 +75,29 @@ Ensure the following tools are globally accessible within your environment befor
 
 ## Installation Guide
 
-### 1. Backend Setup (FastAPI)
+### 1. Services Setup (Docker)
+
+Start the OpenMetadata container services locally:
+
+```bash
+docker compose -f openmetadata-docker-compose.yml up -d
+```
+
+### 1. External Services Setup (Docker)
+
+Start the OpenMetadata container services for live intelligence mapping:
+
+```bash
+docker compose -f openmetadata-docker-compose.yml up -d
+```
+
+Ensure OpenMetadata is fully running before using the backend services.
+
+### 2. Backend Setup (FastAPI)
 
 Navigate to the backend module to construct a sandbox virtual environment and deploy the API logic.
 
-`ash
+````bash
 cd backend
 python -m venv venv
 
@@ -91,44 +109,65 @@ source venv/bin/activate
 
 # Install strictly bound dependencies
 pip install -r requirements.txt
-`
+```
 
 Boot the FastAPI application:
 
-`ash
-python main.py
-`
+````bash
+uvicorn main:app --reload --port 8000
+```
 
-The server instances will map to http://0.0.0.0:8000.
+The server instances will map to http://localhost:8000.
 
-### 2. Frontend Setup (Next.js)
+### 3. Frontend Setup (Next.js)
 
 Open a separate terminal, navigate to the frontend directory, and resolve Javascript node modules.
 
-`ash
+````bash
 cd frontend
 # Execute a clean install logic if node_modules are invalid
 npm install
-`
+```
 
 Initialize the Turbopack accelerated development runtime:
 
-`ash
+````bash
 npm run dev
-`
+```
 
 The standard Next.js broadcast will be reachable at http://localhost:3000.
 
 ## Configuration and Secrets
 
-Meridian requires a .env initialization file located at the project root to integrate third-party environments securely. 
+Meridian requires a `.env` initialization file located inside the `backend/` directory to integrate third-party environments securely. 
 
-Variable requirements:
-- SLACK_BOT_TOKEN (Standard xoxb- prefixed token)
-- SLACK_APP_TOKEN (Standard xapp- prefixed token for Socket Mode)
-- GITHUB_ACCESS_TOKEN
-- JIRA_API_TOKEN
-- API Keys for Large Language Models connected into the /ai/ schema logic.
+Create a `.env` file containing the following required connection variables:
+
+```env
+# OpenMetadata Core
+OPENMETADATA_HOST=http://localhost:8585
+OPENMETADATA_JWT_TOKEN=your_jwt_token
+
+# AI/LLM Secrets
+OPENAI_API_KEY=your_openai_api_key
+
+# CI/CD and Tracking Integrations
+GITHUB_TOKEN=your_github_token
+GITHUB_REPO=aditisingh02/meridian
+JIRA_URL=https://your-domain.atlassian.net
+JIRA_EMAIL=your_email@domain.com
+JIRA_API_TOKEN=your_jira_api_token
+JIRA_PROJECT_KEY=MER
+
+# ChatOps (Slack)
+SLACK_BOT_TOKEN=xoxb-your-bot-token
+SLACK_APP_TOKEN=xapp-your-app-token
+
+# Error Observability (Sentry)
+SENTRY_AUTH_TOKEN=your_sentry_token
+SENTRY_ORG=your_sentry_org
+SENTRY_PROJECT=your_sentry_project
+```
 
 Failure to resolve these keys will temporarily disable affected external integration paths (such as the Slack Listener), though the internal core application and mocked seeding will continue to function on local.
 
@@ -136,10 +175,10 @@ Failure to resolve these keys will temporarily disable affected external integra
 
 The frontend enforces strict build compiling checks. Proceed with compilation tests before containerizing or hosting statically.
 
-`ash
+````bash
 cd frontend
 npm run build
 npm run start
-`
+```
 
 For backend staging environments, run the application utilizing Uvicorn explicitly bound to proxy gateways or application hosting configurations.

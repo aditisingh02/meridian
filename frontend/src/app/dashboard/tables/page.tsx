@@ -3,49 +3,83 @@
 import Link from "next/link";
 import { Globe } from "lucide-react";
 import { useState, useEffect } from "react";
+import { api, QualityTest, SearchHit, TableColumn, TableDetails } from "@/lib/api";
 
 const NAV_LINKS = [
   { name: "Overview", href: "/dashboard" },
   { name: "Tables", href: "/dashboard/tables" },
-  { name: "Incidents", href: "/dashboard" },
-  { name: "Governance", href: "/dashboard" },
   { name: "Lineage", href: "/dashboard/lineage" },
 ];
 
 export default function TablesPage() {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<SearchHit[]>([]);
+  const [loadingResults, setLoadingResults] = useState(false);
+  const [resultsError, setResultsError] = useState<string | null>(null);
   const [selectedFqn, setSelectedFqn] = useState<string | null>(null);
-  const [tableDetails, setTableDetails] = useState<any | null>(null);
-  const [qualityTests, setQualityTests] = useState<any[]>([]);
+  const [tableDetails, setTableDetails] = useState<TableDetails | null>(null);
+  const [qualityTests, setQualityTests] = useState<QualityTest[]>([]);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (query.length < 2) { setResults([]); return; }
+    const searchTerm = query.trim();
     const timer = setTimeout(async () => {
+      if (searchTerm.length > 0 && searchTerm.length < 2) {
+        setResults([]);
+        setResultsError(null);
+        return;
+      }
       try {
-        const res = await fetch(`http://localhost:8000/api/data/search?q=${query}`);
-        const data = await res.json();
-        setResults(data.hits?.hits || []);
-      } catch (e) { console.error(e); }
+        setLoadingResults(true);
+        setResultsError(null);
+        const data = await api.searchData(searchTerm || "*");
+        const nextResults = data?.hits?.hits || [];
+        setResults(nextResults);
+
+        if (!selectedFqn && nextResults.length > 0) {
+          const firstFqn = nextResults[0]._source?.fullyQualifiedName;
+          if (firstFqn) setSelectedFqn(firstFqn);
+        }
+      } catch (e: unknown) {
+        setResults([]);
+        setResultsError(e instanceof Error ? e.message : "Unable to search tables right now.");
+      } finally {
+        setLoadingResults(false);
+      }
     }, 300);
+
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, selectedFqn]);
 
   useEffect(() => {
-    if (!selectedFqn) { setTableDetails(null); setQualityTests([]); return; }
+    if (!selectedFqn) return;
+
     async function fetchDetails() {
       try {
-        const [tableRes, qualityRes] = await Promise.all([
-          fetch(`http://localhost:8000/api/data/table?fqn=${selectedFqn}`),
-          fetch(`http://localhost:8000/api/data/quality?fqn=${selectedFqn}`).catch(() => null)
+        setLoadingDetails(true);
+        setDetailsError(null);
+        const [tableData, qualityData] = await Promise.all([
+          api.getTable(selectedFqn!),
+          api.getQuality(selectedFqn!).catch(() => null),
         ]);
-        if (tableRes.ok) setTableDetails(await tableRes.json());
-        if (qualityRes?.ok) {
-          const qData = await qualityRes.json();
+
+        setTableDetails(tableData);
+        if (qualityData) {
+          const qData = qualityData;
           setQualityTests(qData.data || []);
-        } else setQualityTests([]);
-      } catch (e) { console.error("Failed to fetch table details", e); }
+        } else {
+          setQualityTests([]);
+        }
+      } catch (e: unknown) {
+        setTableDetails(null);
+        setQualityTests([]);
+        setDetailsError(e instanceof Error ? e.message : "Failed to fetch selected table details.");
+      } finally {
+        setLoadingDetails(false);
+      }
     }
+
     fetchDetails();
   }, [selectedFqn]);
 
@@ -54,7 +88,7 @@ export default function TablesPage() {
       {/* Navbar */}
       <div className="fixed top-5 left-0 right-0 z-50 flex justify-center px-4">
         <nav className="flex items-center gap-1 bg-black/60 backdrop-blur-md border border-[#333] rounded-full px-2 py-2 shadow-xl shadow-black/50">
-          <Link href="/" className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-white/10 transition-colors flex-shrink-0">
+          <Link href="/" className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-white/10 transition-colors shrink-0">
             <Globe className="w-5 h-5 text-white" strokeWidth={2.5} />
             <span className="font-semibold text-white text-sm">Meridian</span>
           </Link>
@@ -68,10 +102,6 @@ export default function TablesPage() {
               }`}
             >{link.name}</Link>
           ))}
-          <div className="w-px h-4 bg-[#333] mx-1" />
-          <Link href="/dashboard/intelligence"
-            className="px-3 py-1.5 rounded-full text-sm font-medium text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-          >Intelligence</Link>
           <div className="w-8 h-8 rounded-full bg-[#222] flex items-center justify-center text-xs font-bold text-gray-400 ml-1">A</div>
         </nav>
       </div>
@@ -92,18 +122,28 @@ export default function TablesPage() {
             onChange={(e) => setQuery(e.target.value)}
             className="w-full px-4 py-3 rounded-xl border border-[#333] bg-[#111] text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-white/30 transition"
           />
+          {resultsError && (
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+              {resultsError}
+            </div>
+          )}
           <div className="bg-[#0a0a0a] border border-[#222] rounded-xl overflow-hidden flex flex-col min-h-[500px]">
-            {results.length === 0 ? (
+            {loadingResults ? (
+              <div className="flex-1 flex items-center justify-center p-8 text-center text-gray-500 text-sm">
+                Loading tables...
+              </div>
+            ) : results.length === 0 ? (
               <div className="flex-1 flex items-center justify-center p-8 text-center text-gray-600 text-sm">
-                {query.length < 2 ? "Type to search…" : "No results found."}
+                {query.trim().length < 2 ? "No tables found yet. Try searching by table name." : "No results found."}
               </div>
             ) : (
               <div className="divide-y divide-[#222] max-h-[600px] overflow-y-auto">
-                {results.map((r: any) => {
+                {results.map((r) => {
                   const src = r._source;
+                  if (!src?.fullyQualifiedName) return null;
                   const isSelected = selectedFqn === src.fullyQualifiedName;
                   return (
-                    <button key={src.fullyQualifiedName} onClick={() => setSelectedFqn(src.fullyQualifiedName)}
+                    <button key={src.fullyQualifiedName} onClick={() => setSelectedFqn(src.fullyQualifiedName || null)}
                       className={`w-full text-left px-4 py-3 hover:bg-[#111] transition-colors flex items-center justify-between border-l-4 ${isSelected ? "bg-[#111] border-white" : "border-transparent"}`}
                     >
                       <div>
@@ -121,7 +161,11 @@ export default function TablesPage() {
 
         {/* Right: Details */}
         <div className="col-span-2">
-          {tableDetails ? (
+          {loadingDetails ? (
+            <div className="bg-[#0a0a0a] border border-[#222] rounded-xl h-full flex flex-col items-center justify-center p-12 text-center">
+              <p className="text-sm text-gray-500">Loading table details...</p>
+            </div>
+          ) : tableDetails ? (
             <div className="bg-[#0a0a0a] border border-[#222] rounded-xl overflow-hidden flex flex-col h-full">
               <div className="p-6 border-b border-[#222]">
                 <div className="flex items-center justify-between mb-2">
@@ -132,7 +176,7 @@ export default function TablesPage() {
                 </div>
                 <p className="text-sm text-gray-500 mb-4">{tableDetails.description || "No description provided."}</p>
                 <div className="flex flex-wrap gap-2">
-                  {tableDetails.tags?.map((tag: any) => (
+                  {tableDetails.tags?.map((tag) => (
                     <span key={tag.tagFQN} className="text-[10px] font-bold px-2 py-1 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">{tag.tagFQN}</span>
                   ))}
                   {tableDetails.owner && (
@@ -145,11 +189,11 @@ export default function TablesPage() {
                 <div className="p-6 border-b border-[#222] bg-[#111]/50">
                   <h3 className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">Data Quality Tests</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {qualityTests.map((t: any) => {
+                    {qualityTests.map((t) => {
                       const isPassing = t.testCaseResult?.testCaseStatus === "Success";
                       return (
                         <div key={t.id} className="bg-[#0a0a0a] p-3 rounded-lg border border-[#333] flex items-start gap-3">
-                          <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${isPassing ? "bg-green-500" : "bg-red-500"}`} />
+                          <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${isPassing ? "bg-green-500" : "bg-red-500"}`} />
                           <div>
                             <div className="text-sm font-semibold text-white">{t.name}</div>
                             <div className="text-xs text-gray-500 mt-1 line-clamp-2">{t.description}</div>
@@ -173,24 +217,36 @@ export default function TablesPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#222]">
-                      {tableDetails.columns?.map((col: any) => (
+                      {(tableDetails.columns || []).map((col: TableColumn) => (
                         <tr key={col.name} className="hover:bg-[#111] transition-colors">
                           <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-white">{col.name}</td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 font-mono">{col.dataTypeDisplay || col.dataType}</td>
                           <td className="px-4 py-3 text-sm text-gray-500 max-w-[200px] truncate">{col.description || "—"}</td>
                           <td className="px-4 py-3 text-sm">
                             <div className="flex flex-wrap gap-1">
-                              {col.tags?.map((t: any) => (
+                              {col.tags?.map((t) => (
                                 <span key={t.tagFQN} className="text-[9px] px-1.5 py-0.5 rounded bg-[#222] text-gray-400 font-medium">{t.tagFQN}</span>
                               ))}
                             </div>
                           </td>
                         </tr>
                       ))}
+                      {(!tableDetails.columns || tableDetails.columns.length === 0) && (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-500">
+                            No column metadata available for this table.
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
               </div>
+            </div>
+          ) : detailsError ? (
+            <div className="bg-[#0a0a0a] border border-red-500/30 rounded-xl h-full flex flex-col items-center justify-center p-12 text-center">
+              <h3 className="text-lg font-bold text-white">Couldn&apos;t load table details</h3>
+              <p className="text-sm text-red-300 mt-2 max-w-md">{detailsError}</p>
             </div>
           ) : (
             <div className="bg-[#0a0a0a] border border-[#222] rounded-xl h-full flex flex-col items-center justify-center p-12 text-center">

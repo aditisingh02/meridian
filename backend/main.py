@@ -147,6 +147,60 @@ async def api_sentry_intelligence():
     from integrations.sentry_client import analyse
     return await analyse()
 
+@app.get("/api/intelligence/{domain}/insight")
+async def api_intelligence_insight(domain: str):
+    import json
+    from ai.llm import LLMClient
+    
+    # Get the raw data
+    data = {}
+    if domain == "github":
+        from intelligence import github_agent
+        data = await github_agent.analyse()
+    elif domain == "hr":
+        from intelligence import hr_intelligence
+        data = await hr_intelligence.analyse()
+    elif domain == "finance":
+        from intelligence import finance_intelligence
+        data = await finance_intelligence.analyse()
+    elif domain == "pm":
+        from intelligence import pm_intelligence
+        data = await pm_intelligence.analyse()
+    elif domain == "dbt":
+        from integrations.dbt_client import analyse
+        data = await analyse()
+    elif domain == "sentry":
+        from integrations.sentry_client import analyse
+        data = await analyse()
+    else:
+        raise HTTPException(status_code=400, detail="Invalid domain")
+        
+    client = LLMClient()
+    
+    if not client.client:
+        return {"insight": "Groq API key not configured. Cannot generate insights."}
+        
+    system_prompt = (
+        "You are an expert Engineering Manager & Data Governance AI. "
+        "Analyze the provided JSON metrics for a specific domain and write a concise, "
+        "insightful 2-3 sentence summary in plain text. Highlight key risks or positive trends. "
+        "Do not use markdown formatting like asterisks or bullet points. "
+        "Do not hallucinate or use external data."
+    )
+    
+    try:
+        response = await client.client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Domain: {domain}\nMetrics:\n{json.dumps(data, indent=2)}"}
+            ],
+            model="llama-3.3-70b-versatile",
+            temperature=0.2,
+        )
+        return {"insight": response.choices[0].message.content}
+    except Exception as e:
+        return {"insight": f"Failed to generate insight: {str(e)}"}
+
 
 # ── Executive API ─────────────────────────────────────────────────────────────
 @app.get("/api/executive/signals")
@@ -245,14 +299,17 @@ async def start_slack_socket_mode():
     if not (bot_token and app_token):
         logging.warning("Slack tokens missing — integration disabled.")
         return
-    from slack_bolt.async_app import AsyncApp
-    from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
-    from slack_bot import commands
-    slack_app = AsyncApp(token=bot_token)
-    commands.register_commands(slack_app)
-    handler = AsyncSocketModeHandler(slack_app, app_token)
-    logging.info("Starting Slack Socket Mode…")
-    await handler.start_async()
+    try:
+        from slack_bolt.async_app import AsyncApp
+        from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
+        from slack_bot import commands
+        slack_app = AsyncApp(token=bot_token)
+        commands.register_commands(slack_app)
+        handler = AsyncSocketModeHandler(slack_app, app_token)
+        logging.info("Starting Slack Socket Mode…")
+        await handler.start_async()
+    except Exception as exc:
+        logging.exception("Slack Socket Mode startup failed: %s", exc)
 
 
 @app.on_event("startup")

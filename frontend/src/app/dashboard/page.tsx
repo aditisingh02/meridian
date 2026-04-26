@@ -1,14 +1,55 @@
 "use client";
 
 import Link from "next/link";
-import { Globe } from "lucide-react";
+import { Globe, Brain } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import EventTicker from "@/components/EventTicker";
 import AgentChat from "@/components/AgentChat";
-import HealthMap from "@/components/HealthMap";
+import { ExecutivePanel } from "@/components/intelligence/IntelligencePanels";
 import { api, type Stats, type Incident } from "@/lib/api";
 
-const NAV_LINKS = ["Overview", "Tables", "Lineage"];
+const NAV_LINKS = ["Overview", "Tables", "Lineage", "Intelligence"];
+
+const INTELLIGENCE_TABS = [
+  { id: "executive", name: "Executive", component: ExecutivePanel },
+];
+
+function IntelligenceHub() {
+  const [activeTab, setActiveTab] = useState("executive");
+  
+  const ActiveComponent = INTELLIGENCE_TABS.find(tab => tab.id === activeTab)?.component || ExecutivePanel;
+  
+  return (
+    <div className="vercel-card rounded-2xl p-6 shadow-sm">
+      <div className="mb-6">
+        <h2 className="text-lg font-bold text-white mb-2">Intelligence Hub</h2>
+        <p className="text-sm text-gray-400 mb-4">Cross-domain signals across GitHub, HR, Finance, and PM</p>
+        
+        {/* Tab Navigation */}
+        <div className="flex gap-2 mb-6">
+          {INTELLIGENCE_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === tab.id
+                  ? "bg-white text-black"
+                  : "bg-[#111] text-gray-400 hover:text-white hover:bg-[#222] border border-[#333]"
+              }`}
+            >
+              {tab.name}
+            </button>
+          ))}
+        </div>
+      </div>
+      
+      {/* Active Panel */}
+      <div className="min-h-[400px]">
+        <ActiveComponent />
+      </div>
+    </div>
+  );
+}
 
 const severityColor: Record<string, string> = {
   critical: "bg-red-500/10 text-red-400 border border-red-500/20",
@@ -30,20 +71,68 @@ function timeAgo(iso: string): string {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
+function OpenMetadataAssets() {
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.searchData("*")
+      .then(res => setData(res?.hits?.hits || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="vercel-card rounded-2xl p-6 shadow-sm border border-[#222] animate-pulse h-32" />;
+  if (data.length === 0) return <div className="vercel-card rounded-2xl p-6 text-gray-400 text-center">No catalog assets found.</div>;
+
+  return (
+    <div className="vercel-card rounded-2xl p-6 shadow-sm">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-sm font-bold text-white">Top Data Assets</h2>
+        <span className="text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-1 rounded-lg">
+          OpenMetadata Connected
+        </span>
+      </div>
+      <div className="space-y-3">
+        {data.slice(0, 5).map((item: any, i: number) => {
+          const table = item._source || item;
+          const fqn = table.fullyQualifiedName || "unknown.table";
+          const owner = table.owner?.name || "Unowned";
+          const tierTag = table.tags?.find((t:any) => t.tagFQN?.startsWith("Tier.Tier"));
+          const tier = tierTag ? tierTag.tagFQN.split(".").pop() : "No Tier";
+          return (
+            <div key={i} className="flex items-center justify-between border border-[#222] rounded-xl p-3 bg-[#111]">
+              <div className="flex flex-col min-w-0">
+                <div className="text-xs font-bold text-white truncate">{fqn}</div>
+                <div className="text-[10px] text-gray-400 mt-1">@{owner}</div>
+              </div>
+              <span className={`text-[10px] font-bold px-2 py-1 rounded ${tier === 'Tier1' ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-[#222] text-gray-400 border border-[#333]'}`}>
+                {tier}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
-  const [activeNav, setActiveNav] = useState("Overview");
   const [stats, setStats] = useState<Stats | null>(null);
   const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [health, setHealth] = useState<{ status: string; version: string; integrations: Record<string, boolean> } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     try {
-      const [statsRes, incRes] = await Promise.all([
+      const [statsRes, incRes, healthRes] = await Promise.all([
         api.getStats(),
         api.getIncidents("open"),
+        api.getHealth(),
       ]);
       setStats(statsRes);
       setIncidents(incRes.incidents);
+      setHealth(healthRes);
     } catch {
       // Backend may not be ready — silently retry
     } finally {
@@ -84,29 +173,22 @@ export default function Dashboard() {
       {/* ── Floating pill navbar ── */}
       <div className="fixed top-5 left-0 right-0 z-50 flex justify-center px-4">
         <nav className="flex items-center gap-1 glass-nav rounded-full px-2 py-2 shadow-xl shadow-black/50">
-          <Link href="/" className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-white/10 transition-colors flex-shrink-0">
+          <Link href="/" className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-white/10 transition-colors shrink-0">
             <Globe className="w-5 h-5 text-white" strokeWidth={2.5} />
             <span className="font-semibold text-white text-sm">Meridian</span>
           </Link>
           <div className="w-px h-4 bg-[#333] mx-1" />
           {NAV_LINKS.map((link) => (
-            <button
+            <Link
               key={link}
-              onClick={() => setActiveNav(link)}
+              href={link === "Overview" ? "/dashboard" : `/dashboard/${link.toLowerCase()}`}
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                activeNav === link ? "bg-white text-black" : "text-gray-400 hover:text-white hover:bg-white/10"
+                link === "Overview" ? "bg-white text-black" : "text-gray-400 hover:text-white hover:bg-white/10"
               }`}
             >
               {link}
-            </button>
+            </Link>
           ))}
-          <div className="w-px h-4 bg-[#333] mx-1" />
-          <Link
-            href="/dashboard/intelligence"
-            className="px-3 py-1.5 rounded-full text-sm font-medium text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-          >
-            Intelligence
-          </Link>
           <div className="w-px h-4 bg-[#333] mx-1" />
           <div className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full ${
             stats && stats.open_incidents > 0
@@ -162,8 +244,13 @@ export default function Dashboard() {
               )}
             </div>
 
-            <HealthMap />
           </div>
+
+          {/* AI Insights & Intelligence */}
+          <IntelligenceHub />
+
+          {/* OpenMetadata Source Data */}
+          <OpenMetadataAssets />
 
           {/* Bottom row */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -189,7 +276,7 @@ export default function Dashboard() {
                   {incidents.map((inc) => (
                     <div key={inc.id} className="border border-[#222] rounded-xl p-3 hover:border-[#333] transition-colors">
                       <div className="flex items-start gap-2">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg flex-shrink-0 ${severityColor[inc.severity]}`}>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0 ${severityColor[inc.severity]}`}>
                           {inc.severity.toUpperCase()}
                         </span>
                         <div className="flex-1 min-w-0">
@@ -238,7 +325,7 @@ export default function Dashboard() {
                       <div className="text-sm font-medium text-white">{int.name}</div>
                       <div className="text-[10px] text-gray-400">{int.desc}</div>
                     </div>
-                    <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${int.connected ? "bg-green-500/10 border border-green-500/20 text-green-400" : "bg-black border border-[#333] text-gray-400"}`}>
+                    <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${int.connected ? "bg-green-500/10 border border-green-500/20 text-green-400" : "bg-[#222] text-gray-500"}`}>
                       {int.connected ? "Active" : "Set up →"}
                     </span>
                   </div>
@@ -251,9 +338,58 @@ export default function Dashboard() {
         {/* ── Right ── */}
         <div className="space-y-5">
           <EventTicker />
-          <AgentChat />
         </div>
       </div>
+
+      {/* ── Floating AI Agent Button ── */}
+      <AgentChatPopup />
     </div>
+  );
+}
+
+function AgentChatPopup() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <>
+      {/* Floating Button */}
+      <button
+        onClick={() => setIsOpen(true)}
+        className="fixed bottom-6 right-6 w-14 h-14 bg-purple-600 hover:bg-purple-700 rounded-full shadow-xl shadow-purple-500/25 flex items-center justify-center transition-all hover:scale-105 z-50"
+      >
+        <Brain className="w-6 h-6 text-white" />
+      </button>
+
+      {/* Modal Overlay */}
+      {isOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0a0a0a] border border-[#222] rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-[#222]">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center">
+                  <Brain className="w-5 h-5 text-purple-400" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-white">AI Agent</h2>
+                  <p className="text-sm text-gray-400">Ask anything about your data stack</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center transition-colors"
+              >
+                <span className="text-gray-400 text-xl">×</span>
+              </button>
+            </div>
+            
+            {/* Chat Content */}
+            <div className="p-6 max-h-[60vh] overflow-y-auto">
+              <AgentChat />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

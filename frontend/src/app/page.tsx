@@ -32,7 +32,7 @@ function FadeUp({ children, delay = 0, className = "" }: { children: React.React
 }
 
 // ── Feature card ──────────────────────────────────────────────────────────────
-function FeatureCard({ icon: Icon, title, desc, delay = 0 }: { icon: React.ElementType; title: string; desc: string; delay?: number }) {
+function FeatureCard({ icon: Icon, title, desc, delay = 0 }: { icon: any; title: string; desc: string; delay?: number }) {
   return (
     <FadeUp delay={delay}>
       <div className="group relative border border-[#222] rounded-2xl p-6 hover:border-[#555] transition-all duration-300 bg-black/40 backdrop-blur-sm hover:bg-[#0a0a0a]">
@@ -465,7 +465,6 @@ export default function LandingPage() {
             <Link href="/dashboard" className="hover:text-white transition-colors">Dashboard</Link>
             <Link href="/dashboard/tables" className="hover:text-white transition-colors">Tables</Link>
             <Link href="/dashboard/lineage" className="hover:text-white transition-colors">Lineage</Link>
-            <Link href="/dashboard/intelligence" className="hover:text-white transition-colors">Intelligence</Link>
           </div>
         </div>
       </footer>

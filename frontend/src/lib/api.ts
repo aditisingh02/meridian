@@ -65,6 +65,76 @@ export interface AgentRun {
   timestamp: string;
 }
 
+export interface SearchHit {
+  _source?: {
+    name?: string;
+    fullyQualifiedName?: string;
+    tier?: string;
+    description?: string;
+  };
+}
+
+export interface SearchResponse {
+  hits?: {
+    hits?: SearchHit[];
+  };
+  error?: string;
+}
+
+export interface EntityRef {
+  id: string;
+  name?: string;
+  fullyQualifiedName?: string;
+}
+
+export interface ColumnTag {
+  tagFQN: string;
+}
+
+export interface TableColumn {
+  name: string;
+  dataType?: string;
+  dataTypeDisplay?: string;
+  description?: string;
+  tags?: ColumnTag[];
+}
+
+export interface TableDetails {
+  name: string;
+  fullyQualifiedName: string;
+  description?: string;
+  tags?: ColumnTag[];
+  owner?: {
+    name?: string;
+  };
+  columns?: TableColumn[];
+}
+
+export interface QualityTest {
+  id: string;
+  name: string;
+  description?: string;
+  testCaseResult?: {
+    testCaseStatus?: string;
+  };
+}
+
+export interface QualityResponse {
+  data?: QualityTest[];
+}
+
+export interface LineageEdge {
+  fromEntity: string;
+  toEntity: string;
+}
+
+export interface LineageResponse {
+  entity?: EntityRef;
+  nodes?: EntityRef[];
+  upstreamEdges?: LineageEdge[];
+  downstreamEdges?: LineageEdge[];
+}
+
 // ── API calls ──────────────────────────────────────────────────────────────
 
 export const api = {
@@ -91,5 +161,15 @@ export const api = {
 
   getAgentHistory: (limit = 10) =>
     apiFetch<{ runs: AgentRun[] }>(`/api/agent/history?limit=${limit}`),
+
+  getHealth: () => apiFetch<{ status: string; version: string; integrations: Record<string, boolean> }>("/health"),
+  searchData: (query: string = "*") =>
+    apiFetch<SearchResponse>(`/api/data/search?q=${encodeURIComponent(query)}`),
+  getTable: (fqn: string) =>
+    apiFetch<TableDetails>(`/api/data/table?fqn=${encodeURIComponent(fqn)}`),
+  getLineage: (fqn: string) =>
+    apiFetch<LineageResponse>(`/api/data/lineage?fqn=${encodeURIComponent(fqn)}`),
+  getQuality: (fqn: string) =>
+    apiFetch<QualityResponse>(`/api/data/quality?fqn=${encodeURIComponent(fqn)}`),
 };
 
