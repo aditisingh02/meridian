@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Globe } from "lucide-react";
+import { 
+  Globe, Folder, GitMerge, CheckCircle, Shield, 
+  Bell, Bug, Database, GitBranch, ClipboardList, 
+  MessageSquare, Users, LineChart, Zap 
+} from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRef, useState, useEffect } from "react";
 import { motion, useInView } from "framer-motion";
-import { TargetCursor } from "@/components/ui/TargetCursor";
 import { LogoLoop } from "@/components/ui/LogoLoop";
 
 // Lazy-load the heavy Three.js Beams to avoid SSR issues
@@ -29,11 +32,13 @@ function FadeUp({ children, delay = 0, className = "" }: { children: React.React
 }
 
 // ── Feature card ──────────────────────────────────────────────────────────────
-function FeatureCard({ icon, title, desc, delay = 0 }: { icon: string; title: string; desc: string; delay?: number }) {
+function FeatureCard({ icon: Icon, title, desc, delay = 0 }: { icon: React.ElementType; title: string; desc: string; delay?: number }) {
   return (
     <FadeUp delay={delay}>
       <div className="group relative border border-[#222] rounded-2xl p-6 hover:border-[#555] transition-all duration-300 bg-black/40 backdrop-blur-sm hover:bg-[#0a0a0a]">
-        <div className="text-3xl mb-4">{icon}</div>
+        <div className="text-white mb-4">
+          <Icon className="w-8 h-8 text-gray-400 group-hover:text-white transition-colors" />
+        </div>
         <h3 className="text-base font-semibold text-white mb-2">{title}</h3>
         <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
       </div>
@@ -180,22 +185,16 @@ function StatItem({ value, label }: { value: string; label: string }) {
 
 // ── OpenMetadata section scrolling flow ────────────────────────────────────────
 const OM_STEPS = [
-  { icon: "🗂️", title: "Catalog", desc: "Automatically ingests and catalogs all your data assets — tables, dashboards, pipelines, and more." },
-  { icon: "🔗", title: "Lineage", desc: "Traces every upstream and downstream dependency so you can see the full impact of any schema change." },
-  { icon: "✅", title: "Data Quality", desc: "Runs configurable test suites and surfaces failures directly in the Meridian Intelligence Hub." },
-  { icon: "🏷️", title: "Governance", desc: "Tags PII columns, assigns owners, and tracks SLA tiers across your entire data estate." },
+  { icon: Folder, title: "Catalog", desc: "Automatically ingests and catalogs all your data assets — tables, dashboards, pipelines, and more." },
+  { icon: GitMerge, title: "Lineage", desc: "Traces every upstream and downstream dependency so you can see the full impact of any schema change." },
+  { icon: CheckCircle, title: "Data Quality", desc: "Runs configurable test suites and surfaces failures directly in the Meridian Intelligence Hub." },
+  { icon: Shield, title: "Governance", desc: "Tags PII columns, assigns owners, and tracks SLA tiers across your entire data estate." },
 ];
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function LandingPage() {
   return (
     <main className="bg-black text-white selection:bg-white/20 relative">
-      <TargetCursor 
-        spinDuration={2}
-        hideDefaultCursor
-        parallaxOn
-        hoverDuration={0.2}
-      />
 
       {/* ── Fixed Three.js Beams — full viewport ── */}
       <div className="absolute inset-x-0 top-0 h-screen pointer-events-none z-0 overflow-hidden">
@@ -337,15 +336,15 @@ export default function LandingPage() {
           </FadeUp>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <FeatureCard delay={0.0} icon="📟" title="PagerDuty Alerting" desc="Critical data incidents automatically trigger on-call pages. Auto-resolve when the issue clears, with full audit trails." />
-            <FeatureCard delay={0.05} icon="🐛" title="Sentry Error Tracking" desc="Correlate application errors with data pipeline failures. Identify data-related errors automatically using keyword analysis." />
-            <FeatureCard delay={0.10} icon="🧱" title="dbt Cloud Pipelines" desc="Monitor job success rates, average durations, and test failures. Know the moment a transformation breaks before it cascades." />
-            <FeatureCard delay={0.15} icon="🐙" title="GitHub Intelligence" desc="PR cycle time, contributor burnout risk, after-hours commit patterns, and team-level velocity metrics — all automatic." />
-            <FeatureCard delay={0.20} icon="📋" title="Jira / PM Signals" desc="Sprint health, ticket velocity, and blocker tracking. Correlate delayed sprints with pipeline outages automatically." />
-            <FeatureCard delay={0.25} icon="💬" title="Slack Integration" desc="Real-time incident notifications sent directly to your team Slack channel with context, severity, and resolution links." />
-            <FeatureCard delay={0.30} icon="👥" title="HR & Burnout Risk" desc="Weekend commits, after-hours activity, and per-developer burn scores — surfaced before someone burns out." />
-            <FeatureCard delay={0.35} icon="💰" title="Finance Intelligence" desc="Sprint cost estimation, incident cost modelling, and engineering ROI tracking based on team size and hourly rates." />
-            <FeatureCard delay={0.40} icon="⚡" title="Executive Dashboard" desc="A single status signal synthesising all domains. Green, amber, or red — instantly shareable with stakeholders." />
+            <FeatureCard delay={0.0} icon={Bell} title="PagerDuty Alerting" desc="Critical data incidents automatically trigger on-call pages. Auto-resolve when the issue clears, with full audit trails." />
+            <FeatureCard delay={0.05} icon={Bug} title="Sentry Error Tracking" desc="Correlate application errors with data pipeline failures. Identify data-related errors automatically using keyword analysis." />
+            <FeatureCard delay={0.10} icon={Database} title="dbt Cloud Pipelines" desc="Monitor job success rates, average durations, and test failures. Know the moment a transformation breaks before it cascades." />
+            <FeatureCard delay={0.15} icon={GitBranch} title="GitHub Intelligence" desc="PR cycle time, contributor burnout risk, after-hours commit patterns, and team-level velocity metrics — all automatic." />
+            <FeatureCard delay={0.20} icon={ClipboardList} title="Jira / PM Signals" desc="Sprint health, ticket velocity, and blocker tracking. Correlate delayed sprints with pipeline outages automatically." />
+            <FeatureCard delay={0.25} icon={MessageSquare} title="Slack Integration" desc="Real-time incident notifications sent directly to your team Slack channel with context, severity, and resolution links." />
+            <FeatureCard delay={0.30} icon={Users} title="HR & Burnout Risk" desc="Weekend commits, after-hours activity, and per-developer burn scores — surfaced before someone burns out." />
+            <FeatureCard delay={0.35} icon={LineChart} title="Finance Intelligence" desc="Sprint cost estimation, incident cost modelling, and engineering ROI tracking based on team size and hourly rates." />
+            <FeatureCard delay={0.40} icon={Zap} title="Executive Dashboard" desc="A single status signal synthesising all domains. Green, amber, or red — instantly shareable with stakeholders." />
           </div>
         </div>
       </section>
@@ -374,7 +373,9 @@ export default function LandingPage() {
               {OM_STEPS.map((step, i) => (
                 <FadeUp key={step.title} delay={i * 0.1}>
                   <div className="flex items-start gap-4 p-5 border border-[#222] rounded-xl hover:border-[#444] transition-colors bg-black/40">
-                    <div className="text-2xl flex-shrink-0 mt-0.5">{step.icon}</div>
+                    <div className="flex-shrink-0 mt-0.5 text-gray-400">
+                      <step.icon className="w-6 h-6" />
+                    </div>
                     <div>
                       <div className="font-semibold text-white text-sm mb-1">{step.title}</div>
                       <div className="text-sm text-gray-500 leading-relaxed">{step.desc}</div>

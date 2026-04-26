@@ -20,3 +20,6 @@ openmetadata/docker-volume/
 
 # OS Files
 .DS_Store
+
+.vscode
+
