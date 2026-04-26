@@ -76,7 +76,7 @@ export function ExecutivePanel() {
   const [brief, setBrief] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [briefLoading, setBriefLoading] = useState(true);
-  const API = (process.env.NEXT_PUBLIC_API_URL as string).replace(/\/$/, "");
+  const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 
   useEffect(() => {
     fetch(`${API}/api/executive/dashboard`)
@@ -231,7 +231,7 @@ export function ExecutivePanel() {
 export function GitHubPanel() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const API = (process.env.NEXT_PUBLIC_API_URL as string).replace(/\/$/, "");
+  const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 
   useEffect(() => {
     fetch(`${API}/api/intelligence/github?days=30`)
@@ -300,7 +300,7 @@ export function GitHubPanel() {
 export function HRPanel() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const API = (process.env.NEXT_PUBLIC_API_URL as string).replace(/\/$/, "");
+  const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 
   useEffect(() => {
     fetch(`${API}/api/intelligence/hr?days=30`)
@@ -368,7 +368,7 @@ export function HRPanel() {
 export function FinancePanel() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const API = (process.env.NEXT_PUBLIC_API_URL as string).replace(/\/$/, "");
+  const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 
   useEffect(() => {
     fetch(`${API}/api/intelligence/finance?days=30`)
@@ -418,7 +418,7 @@ export function FinancePanel() {
 export function PMPanel() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const API = (process.env.NEXT_PUBLIC_API_URL as string).replace(/\/$/, "");
+  const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 
   useEffect(() => {
     fetch(`${API}/api/intelligence/pm?days=14`)
@@ -518,7 +518,7 @@ export function PMPanel() {
 export function DBTPanel() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const API = (process.env.NEXT_PUBLIC_API_URL as string).replace(/\/$/, "");
+  const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 
   useEffect(() => {
     fetch(`${API}/api/intelligence/dbt`)
@@ -620,7 +620,7 @@ export function DBTPanel() {
 export function SentryPanel() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const API = (process.env.NEXT_PUBLIC_API_URL as string).replace(/\/$/, "");
+  const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 
   useEffect(() => {
     fetch(`${API}/api/intelligence/sentry`)

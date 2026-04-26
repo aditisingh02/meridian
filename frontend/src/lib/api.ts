@@ -1,6 +1,11 @@
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL as string).replace(/\/$/, "");
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+const API_BASE = rawApiUrl.replace(/\/$/, "");
 
-export const WS_URL = (process.env.NEXT_PUBLIC_WS_URL as string).replace(/\/$/, "") + "/ws/events";
+let rawWsUrl = process.env.NEXT_PUBLIC_WS_URL || "";
+if (!rawWsUrl.includes("localhost") && rawWsUrl.startsWith("ws://")) {
+  rawWsUrl = rawWsUrl.replace("ws://", "wss://");
+}
+export const WS_URL = rawWsUrl.replace(/\/$/, "") + "/ws/events";
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
