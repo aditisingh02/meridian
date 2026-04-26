@@ -2,20 +2,20 @@
 import { useEffect, useState } from "react";
 
 const STATUS_STYLE: Record<string, string> = {
-  ON_TRACK:  "bg-green-100 text-green-700 border-green-200",
-  AT_RISK:   "bg-yellow-100 text-yellow-700 border-yellow-200",
-  OFF_TRACK: "bg-red-100 text-red-600 border-red-200",
+  ON_TRACK:  "bg-green-500/10 text-green-400 border-green-500/20",
+  AT_RISK:   "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+  OFF_TRACK: "bg-red-500/10 text-red-400 border-red-500/20",
 };
 const RISK_STYLE: Record<string, string> = {
-  HIGH:   "bg-red-100 text-red-600",
-  MEDIUM: "bg-yellow-100 text-yellow-700",
-  LOW:    "bg-green-100 text-green-700",
+  HIGH:   "bg-red-500/10 text-red-400 border border-red-500/20",
+  MEDIUM: "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20",
+  LOW:    "bg-green-500/10 text-green-400 border border-green-500/20",
 };
 
 function StatusBadge({ value }: { value?: string }) {
   const safeValue = value || "UNKNOWN";
   return (
-    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${STATUS_STYLE[safeValue] ?? "bg-gray-100 text-gray-500 border-gray-200"}`}>
+    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${STATUS_STYLE[safeValue] ?? "bg-[#222] text-gray-400 border-[#333]"}`}>
       {safeValue.replace("_", " ")}
     </span>
   );
@@ -23,8 +23,8 @@ function StatusBadge({ value }: { value?: string }) {
 
 function Panel({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className={`bg-white rounded-2xl p-5 shadow-sm ${className}`}>
-      <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">{title}</h3>
+    <div className={`vercel-card p-5 ${className}`}>
+      <h3 className="text-sm font-bold text-gray-300 uppercase tracking-wider mb-4">{title}</h3>
       {children}
     </div>
   );
@@ -32,9 +32,9 @@ function Panel({ title, children, className = "" }: { title: string; children: R
 
 function Stat({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
-    <div className="bg-gray-50 rounded-xl p-3">
+    <div className="bg-[#111] border border-[#222] rounded-xl p-3">
       <div className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">{label}</div>
-      <div className="text-xl font-bold text-gray-900 mt-0.5">{value}</div>
+      <div className="text-xl font-bold text-white mt-0.5">{value}</div>
       {sub && <div className="text-[10px] text-gray-400 mt-0.5">{sub}</div>}
     </div>
   );
@@ -61,20 +61,20 @@ export function ExecutivePanel() {
       <div className="flex items-center gap-3 mb-5">
         <span className="text-2xl">{STATUS_ICON[data.overall_status] ?? "❓"}</span>
         <div>
-          <div className="text-lg font-bold text-gray-900">Overall Status</div>
+          <div className="text-lg font-bold text-white">Overall Status</div>
           <StatusBadge value={data.overall_status} />
         </div>
       </div>
       <div className="grid grid-cols-3 md:grid-cols-9 gap-3">
         {(data.panels ?? []).map((p: any) => (
-          <div key={p.id} className="bg-gray-50 rounded-xl p-3 text-center">
+          <div key={p.id} className="bg-[#111] border border-[#222] rounded-xl p-3 text-center">
             <div className="text-[9px] text-gray-400 uppercase tracking-wider mb-1">{p.title}</div>
             <div className={`text-sm font-bold ${
               p.type === "status"
-                ? STATUS_STYLE[p.value]?.split(" ")[1] ?? "text-gray-700"
+                ? STATUS_STYLE[p.value]?.split(" ")[1] ?? "text-gray-300"
                 : p.type === "risk"
-                ? RISK_STYLE[p.value]?.split(" ")[1] ?? "text-gray-700"
-                : "text-gray-900"
+                ? RISK_STYLE[p.value]?.split(" ")[1] ?? "text-gray-300"
+                : "text-white"
             }`}>
               {String(p.value).replace("_", " ")}
             </div>
@@ -96,7 +96,7 @@ export function GitHubPanel() {
       .then(r => r.json()).then(setData).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <Panel title="GitHub Agent"><div className="h-32 animate-pulse bg-gray-50 rounded-xl" /></Panel>;
+  if (loading) return <Panel title="GitHub Agent"><div className="h-32 animate-pulse bg-[#111] border border-[#222] rounded-xl" /></Panel>;
   if (!data?.pr_metrics) return <Panel title="GitHub Agent"><p className="text-xs text-gray-400">Set GITHUB_TOKEN + GITHUB_REPO to enable.</p></Panel>;
 
   const m = data.pr_metrics;
@@ -114,7 +114,7 @@ export function GitHubPanel() {
           <div className="space-y-1">
             {data.top_contributors.slice(0, 5).map((c: any) => (
               <div key={c.author} className="flex items-center justify-between text-xs">
-                <span className="font-mono text-gray-700">@{c.author}</span>
+                <span className="font-mono text-gray-300">@{c.author}</span>
                 <span className="text-gray-400">{c.prs} PRs</span>
               </div>
             ))}
@@ -136,7 +136,7 @@ export function HRPanel() {
       .then(r => r.json()).then(setData).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <Panel title="HR Intelligence"><div className="h-32 animate-pulse bg-gray-50 rounded-xl" /></Panel>;
+  if (loading) return <Panel title="HR Intelligence"><div className="h-32 animate-pulse bg-[#111] border border-[#222] rounded-xl" /></Panel>;
   if (!data?.configured) return <Panel title="HR Intelligence"><p className="text-xs text-gray-400">Set GITHUB_TOKEN + GITHUB_REPO to enable.</p></Panel>;
 
   const risk  = data.team_burnout_risk ?? {};
@@ -147,12 +147,12 @@ export function HRPanel() {
     <Panel title="HR Intelligence">
       <div className="mb-4">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-xs text-gray-500">Team Burnout Risk</span>
+          <span className="text-xs text-gray-400">Team Burnout Risk</span>
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${RISK_STYLE[level]}`}>{level}</span>
         </div>
-        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-2 bg-[#222] rounded-full overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all ${level === "HIGH" ? "bg-red-400" : level === "MEDIUM" ? "bg-yellow-400" : "bg-green-400"}`}
+            className={`h-full rounded-full transition-all ${level === "HIGH" ? "bg-red-500" : level === "MEDIUM" ? "bg-yellow-500" : "bg-green-500"}`}
             style={{ width: `${score}%` }}
           />
         </div>
@@ -169,10 +169,10 @@ export function HRPanel() {
           <div className="space-y-2">
             {data.team_breakdown.slice(0, 4).map((d: any) => (
               <div key={d.author} className="flex items-center justify-between">
-                <span className="text-xs font-mono text-gray-700">@{d.author}</span>
+                <span className="text-xs font-mono text-gray-300">@{d.author}</span>
                 <div className="flex items-center gap-2">
-                  <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full ${d.burnout.level === "HIGH" ? "bg-red-400" : d.burnout.level === "MEDIUM" ? "bg-yellow-400" : "bg-green-400"}`}
+                  <div className="w-16 h-1.5 bg-[#222] rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full ${d.burnout.level === "HIGH" ? "bg-red-500" : d.burnout.level === "MEDIUM" ? "bg-yellow-500" : "bg-green-500"}`}
                       style={{ width: `${d.burnout.score}%` }} />
                   </div>
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${RISK_STYLE[d.burnout.level]}`}>{d.burnout.level}</span>
@@ -197,7 +197,7 @@ export function FinancePanel() {
       .then(r => r.json()).then(setData).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <Panel title="Finance Intelligence"><div className="h-32 animate-pulse bg-gray-50 rounded-xl" /></Panel>;
+  if (loading) return <Panel title="Finance Intelligence"><div className="h-32 animate-pulse bg-[#111] border border-[#222] rounded-xl" /></Panel>;
   if (!data) return null;
 
   return (
@@ -218,10 +218,10 @@ export function FinancePanel() {
           <div className="space-y-1.5">
             {data.risk_radar.map((r: any, i: number) => (
               <div key={i} className="flex items-start gap-2 text-xs">
-                <span className={`mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${r.severity === "high" ? "bg-red-100 text-red-600" : "bg-yellow-100 text-yellow-700"}`}>
+                <span className={`mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${r.severity === "high" ? "bg-red-500/10 text-red-400 border border-red-500/20" : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"}`}>
                   {r.severity.toUpperCase()}
                 </span>
-                <span className="text-gray-600">{r.desc}</span>
+                <span className="text-gray-400">{r.desc}</span>
               </div>
             ))}
           </div>
@@ -242,7 +242,7 @@ export function PMPanel() {
       .then(r => r.json()).then(setData).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <Panel title="PM Intelligence"><div className="h-32 animate-pulse bg-gray-50 rounded-xl" /></Panel>;
+  if (loading) return <Panel title="PM Intelligence"><div className="h-32 animate-pulse bg-[#111] border border-[#222] rounded-xl" /></Panel>;
   if (!data?.configured) return <Panel title="PM Intelligence"><p className="text-xs text-gray-400">Set JIRA_* env vars to enable.</p></Panel>;
   if (!data?.sprint_name) return <Panel title="PM Intelligence"><p className="text-xs text-gray-400">No active sprint found.</p></Panel>;
 
@@ -253,11 +253,11 @@ export function PMPanel() {
     <Panel title="PM Intelligence">
       <div className="mb-4">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-xs text-gray-500">Delivery Confidence · <span className="font-mono">{data.sprint_name}</span></span>
+          <span className="text-xs text-gray-400">Delivery Confidence · <span className="font-mono">{data.sprint_name}</span></span>
           <StatusBadge value={conf.status} />
         </div>
-        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-          <div className={`h-full rounded-full transition-all ${conf.status === "ON_TRACK" ? "bg-green-400" : conf.status === "AT_RISK" ? "bg-yellow-400" : "bg-red-400"}`}
+        <div className="h-2 bg-[#222] rounded-full overflow-hidden">
+          <div className={`h-full rounded-full transition-all ${conf.status === "ON_TRACK" ? "bg-green-500" : conf.status === "AT_RISK" ? "bg-yellow-500" : "bg-red-500"}`}
             style={{ width: `${score}%` }} />
         </div>
         <div className="text-[10px] text-gray-400 mt-1">{score}/100 confidence</div>
@@ -273,10 +273,10 @@ export function PMPanel() {
           <div className="space-y-1.5">
             {data.risks.map((r: any, i: number) => (
               <div key={i} className="flex items-start gap-2 text-xs">
-                <span className={`mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${r.severity === "high" ? "bg-red-100 text-red-600" : "bg-yellow-100 text-yellow-700"}`}>
+                <span className={`mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${r.severity === "high" ? "bg-red-500/10 text-red-400 border border-red-500/20" : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"}`}>
                   {r.type}
                 </span>
-                <span className="text-gray-600">{r.desc}</span>
+                <span className="text-gray-400">{r.desc}</span>
               </div>
             ))}
           </div>
@@ -297,7 +297,7 @@ export function DBTPanel() {
       .then(r => r.json()).then(setData).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <Panel title="dbt Cloud"><div className="h-32 animate-pulse bg-gray-50 rounded-xl" /></Panel>;
+  if (loading) return <Panel title="dbt Cloud"><div className="h-32 animate-pulse bg-[#111] border border-[#222] rounded-xl" /></Panel>;
   if (!data?.configured) return (
     <Panel title="dbt Cloud">
       <p className="text-xs text-gray-400">Set DBT_CLOUD_TOKEN + DBT_ACCOUNT_ID to enable.</p>
@@ -306,10 +306,10 @@ export function DBTPanel() {
 
   const latest = data.latest_run ?? {};
   const statusColor: Record<string, string> = {
-    Success:   "bg-green-100 text-green-700",
-    Error:     "bg-red-100 text-red-600",
+    Success:   "bg-green-500/10 text-green-400 border border-green-500/20",
+    Error:     "bg-red-500/10 text-red-400 border border-red-500/20",
     Running:   "bg-blue-100 text-blue-700",
-    Cancelled: "bg-gray-100 text-gray-500",
+    Cancelled: "bg-gray-100 text-gray-400",
   };
 
   return (
@@ -323,11 +323,11 @@ export function DBTPanel() {
         <Stat label="Avg Duration" value={data.avg_duration_s ? `${Math.round(data.avg_duration_s)}s` : "—"} sub="per run" />
       </div>
       {latest.status && (
-        <div className="bg-gray-50 rounded-xl p-3 mb-3">
+        <div className="bg-[#111] border border-[#222] rounded-xl p-3 mb-3">
           <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Latest Run</div>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-700">{latest.job_name || "Job"}</span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusColor[latest.status] ?? "bg-gray-100 text-gray-500"}`}>
+            <span className="text-xs font-semibold text-gray-300">{latest.job_name || "Job"}</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusColor[latest.status] ?? "bg-gray-100 text-gray-400"}`}>
               {latest.status}
             </span>
           </div>
@@ -347,7 +347,7 @@ export function DBTPanel() {
                 <span className="mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 bg-red-100 text-red-600">
                   {f.status.toUpperCase()}
                 </span>
-                <span className="text-gray-600 font-mono truncate">{f.test}</span>
+                <span className="text-gray-400 font-mono truncate">{f.test}</span>
               </div>
             ))}
           </div>
@@ -359,8 +359,8 @@ export function DBTPanel() {
           <div className="space-y-1">
             {data.recent_runs.slice(0, 5).map((r: any) => (
               <div key={r.id} className="flex items-center justify-between text-xs">
-                <span className="text-gray-600 truncate max-w-[140px]">{r.job}</span>
-                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${statusColor[r.status] ?? "bg-gray-100 text-gray-500"}`}>
+                <span className="text-gray-400 truncate max-w-[140px]">{r.job}</span>
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${statusColor[r.status] ?? "bg-gray-100 text-gray-400"}`}>
                   {r.status}
                 </span>
               </div>
@@ -383,14 +383,14 @@ export function SentryPanel() {
       .then(r => r.json()).then(setData).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <Panel title="Sentry"><div className="h-32 animate-pulse bg-gray-50 rounded-xl" /></Panel>;
+  if (loading) return <Panel title="Sentry"><div className="h-32 animate-pulse bg-[#111] border border-[#222] rounded-xl" /></Panel>;
   if (!data?.configured) return (
     <Panel title="Sentry">
       <p className="text-xs text-gray-400">Set SENTRY_AUTH_TOKEN + SENTRY_ORG + SENTRY_PROJECT to enable.</p>
     </Panel>
   );
 
-  const trendColor = data.error_trend === "spiking" ? "text-red-500" : data.error_trend === "declining" ? "text-green-600" : "text-gray-500";
+  const trendColor = data.error_trend === "spiking" ? "text-red-500" : data.error_trend === "declining" ? "text-green-600" : "text-gray-400";
   const trendIcon  = data.error_trend === "spiking" ? "↑" : data.error_trend === "declining" ? "↓" : "→";
 
   return (
@@ -420,14 +420,14 @@ export function SentryPanel() {
             {data.top_issues.slice(0, 5).map((issue: any) => (
               <div key={issue.id} className="flex items-start gap-2">
                 <span className={`mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${
-                  issue.level === "fatal" ? "bg-red-100 text-red-600" :
+                  issue.level === "fatal" ? "bg-red-500/10 text-red-400 border border-red-500/20" :
                   issue.level === "error" ? "bg-orange-100 text-orange-600" :
-                  "bg-yellow-100 text-yellow-700"
+                  "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
                 }`}>
                   {issue.level.toUpperCase()}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-gray-700 truncate">{issue.title}</p>
+                  <p className="text-xs text-gray-300 truncate">{issue.title}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-[10px] text-gray-400">{issue.count} events</span>
                     {issue.data_related && (

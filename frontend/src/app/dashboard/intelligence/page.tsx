@@ -12,7 +12,13 @@ import {
   SentryPanel,
 } from "@/components/intelligence/IntelligencePanels";
 
-const NAV_LINKS = ["Overview", "Tables", "Incidents", "Governance", "Lineage"];
+const NAV_LINKS = [
+  { name: "Overview", href: "/dashboard" },
+  { name: "Tables", href: "/dashboard/tables" },
+  { name: "Incidents", href: "/dashboard" },
+  { name: "Governance", href: "/dashboard" },
+  { name: "Lineage", href: "/dashboard/lineage" },
+];
 const TABS = ["Executive", "GitHub", "HR", "Finance", "PM", "dbt", "Sentry"] as const;
 type Tab = (typeof TABS)[number];
 
@@ -20,54 +26,54 @@ export default function IntelligencePage() {
   const [tab, setTab] = useState<Tab>("Executive");
 
   return (
-    <div className="min-h-screen bg-[#f0f1f5]">
+    <div className="min-h-screen bg-black text-white selection:bg-white/30">
 
       {/* ── Floating pill navbar ── */}
       <div className="fixed top-5 left-0 right-0 z-50 flex justify-center px-4">
-        <nav className="flex items-center gap-1 bg-white/90 backdrop-blur-md border border-gray-200/80 rounded-full px-2 py-2 shadow-sm shadow-black/5">
-          <Link href="/" className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0">
-            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gray-900 text-white text-[9px] font-bold">M</span>
-            <span className="font-semibold text-gray-900 text-sm">Meridian</span>
+        <nav className="flex items-center gap-1 glass-nav rounded-full px-2 py-2 shadow-xl shadow-black/50">
+          <Link href="/" className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-white/10 transition-colors flex-shrink-0">
+            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white text-black text-[9px] font-bold">M</span>
+            <span className="font-semibold text-white text-sm">Meridian</span>
           </Link>
-          <div className="w-px h-4 bg-gray-200 mx-1" />
+          <div className="w-px h-4 bg-[#333] mx-1" />
           {NAV_LINKS.map((link) => (
             <Link
-              key={link}
-              href="/dashboard"
-              className="px-3 py-1.5 rounded-full text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+              key={link.name}
+              href={link.href}
+              className="px-3 py-1.5 rounded-full text-sm font-medium text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
             >
-              {link}
+              {link.name}
             </Link>
           ))}
-          <div className="w-px h-4 bg-gray-200 mx-1" />
+          <div className="w-px h-4 bg-[#333] mx-1" />
           <Link
             href="/dashboard/intelligence"
-            className="px-3 py-1.5 rounded-full text-sm font-medium bg-gray-900 text-white"
+            className="px-3 py-1.5 rounded-full text-sm font-medium bg-white text-black"
           >
             Intelligence
           </Link>
-          <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 ml-1">A</div>
+          <div className="w-8 h-8 rounded-full bg-[#222] flex items-center justify-center text-xs font-bold text-gray-400 ml-1">A</div>
         </nav>
       </div>
 
       {/* ── Page header ── */}
       <div className="max-w-[1400px] mx-auto px-5 pt-24 pb-4">
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Intelligence Hub</h1>
+            <h1 className="text-2xl font-bold text-white">Intelligence Hub</h1>
             <p className="text-sm text-gray-400 mt-1">
               Cross-domain signals across GitHub, HR, Finance, and PM
             </p>
           </div>
-          <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-full p-1 shadow-sm">
+          <div className="flex items-center gap-1 bg-[#111] border border-[#333] rounded-full p-1 shadow-sm overflow-x-auto max-w-full custom-scrollbar">
             {TABS.map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
                   tab === t
-                    ? "bg-gray-900 text-white"
-                    : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                    ? "bg-white text-black"
+                    : "text-gray-400 hover:text-white hover:bg-[#222]"
                 }`}
               >
                 {t}
@@ -78,7 +84,7 @@ export default function IntelligencePage() {
       </div>
 
       {/* ── Tab content ── */}
-      <div className="max-w-[1400px] mx-auto px-5 pb-10">
+      <div className="max-w-[1400px] mx-auto px-5 pb-10 mt-4">
         {tab === "Executive" && (
           <div className="space-y-5">
             <ExecutivePanel />
